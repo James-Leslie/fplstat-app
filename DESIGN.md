@@ -28,18 +28,31 @@
 
 ---
 
-## Phase 1 — Data Layer & ETL Pipeline
+## Phase 1 — Data Layer & ELT Pipeline
 
-**Goal:** Get real FPL data flowing into Supabase on a schedule.
+**Goal:** Get real FPL data flowing into Supabase on a schedule, with enrichments computed in SQL.
 
-- Set up Supabase project and define schema based on Phase 0
-- Write Python scripts using Polars to:
-  - Fetch from FPL API
-  - Transform raw data (rolling points windows, rank calculations, etc.)
-  - Upsert into Supabase (handle incremental refresh / change tracking manually)
-- Set up GitHub Actions cron job to run the pipeline on a schedule (e.g. hourly during active gameweeks, daily otherwise)
-- Write a FastAPI service that exposes the transformed data via clean REST endpoints
-- **Deliverable:** Supabase populated with transformed data + FastAPI serving it locally
+**Pattern: ELT (Extract → Load → Transform in SQL)**
+- Python is a dumb loader: extract from FPL API, load into `raw.*` schema using original API field names
+- All field renaming, enrichment, and derived columns live as SQL views in `public.*`
+
+**Database layout:**
+- `raw.*` — 5 tables (teams, gameweeks, players, fixtures, player_gameweek_stats) storing API data as-fetched
+- `public.*` — views over raw with renamed columns, transparent to the API layer
+- `public.player_gameweek_enriched` — enriched view adding:
+  - `fdr` — opposition fixture difficulty rating (joined from fixtures)
+  - `xpts` — expected points: `xG × goal_pts_by_position + xA × 3 + xGC × −0.5 (GK/DEF only)`
+
+**Decisions made:**
+- Prices stored ×10 (FPL convention), divided in API/frontend layer
+- Rolling points windows (last N GWs) computed at query time, not stored
+- PK for player_gameweek_stats is `(player_id, fixture_id)` — not `(player_id, gameweek_id)` — to correctly handle double gameweeks
+- Pipeline is full-refresh for now; incremental (re-fetch only players who played in latest GW) is a future optimisation
+
+**Remaining Phase 1 work:**
+- Set up GitHub Actions cron job (hourly during active gameweeks, daily otherwise)
+- Write a FastAPI service that exposes the enriched views via clean REST endpoints
+- **Deliverable:** Supabase populated with enriched data + FastAPI serving it locally
 
 ---
 
