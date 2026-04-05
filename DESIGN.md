@@ -49,10 +49,9 @@
 - PK for player_gameweek_stats is `(player_id, fixture_id)` — not `(player_id, gameweek_id)` — to correctly handle double gameweeks
 - Pipeline is full-refresh for now; incremental (re-fetch only players who played in latest GW) is a future optimisation
 
-**Remaining Phase 1 work:**
-- Set up GitHub Actions cron job (hourly during active gameweeks, daily otherwise)
-- Write a FastAPI service that exposes the enriched views via clean REST endpoints
-- **Deliverable:** Supabase populated with enriched data + FastAPI serving it locally
+**FastAPI endpoints (`api/main.py`):** `/teams`, `/gameweeks`, `/fixtures`, `/players`, `/players/{id}`, `/players/{id}/stats`, `/leaderboard?last_n=N`. Run locally with `uv run fastapi dev api/main.py`.
+
+**Deliverable:** Supabase populated with enriched data + FastAPI serving it locally — **Phase 1 complete.**
 
 ---
 
