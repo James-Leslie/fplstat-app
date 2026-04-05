@@ -1,10 +1,9 @@
-import os
 import time
 
 from dotenv import load_dotenv
-from supabase import create_client
 
 from fplstat.db import (
+    get_connection,
     upsert_fixtures,
     upsert_gameweeks,
     upsert_player_gameweek_stats,
@@ -32,7 +31,6 @@ def _done(t0: float) -> None:
 
 def run() -> None:
     load_dotenv()
-    supabase = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
 
     pipeline_start = time.monotonic()
     print("=== FPL ETL pipeline ===")
@@ -59,26 +57,31 @@ def run() -> None:
     stats_df = transform_player_gameweek_stats(histories)
     _done(t)
 
+    t = _step("Connecting to database")
+    conn = get_connection()
+    _done(t)
+
     t = _step(f"Upserting {len(teams_df)} teams")
-    upsert_teams(supabase, teams_df)
+    upsert_teams(conn, teams_df)
     _done(t)
 
     t = _step(f"Upserting {len(gameweeks_df)} gameweeks")
-    upsert_gameweeks(supabase, gameweeks_df)
+    upsert_gameweeks(conn, gameweeks_df)
     _done(t)
 
     t = _step(f"Upserting {len(players_df)} players")
-    upsert_players(supabase, players_df)
+    upsert_players(conn, players_df)
     _done(t)
 
     t = _step(f"Upserting {len(fixtures_df)} fixtures")
-    upsert_fixtures(supabase, fixtures_df)
+    upsert_fixtures(conn, fixtures_df)
     _done(t)
 
     t = _step(f"Upserting {len(stats_df)} player_gameweek_stats rows")
-    upsert_player_gameweek_stats(supabase, stats_df)
+    upsert_player_gameweek_stats(conn, stats_df)
     _done(t)
 
+    conn.close()
     print(f"=== Done in {time.monotonic() - pipeline_start:.1f}s ===")
 
 
