@@ -36,12 +36,13 @@ def transform_players(bootstrap: dict) -> pl.DataFrame:
         pl.col(c).cast(pl.Float64) for c in cast_cols if c in df.columns
     ])
 
+    # Keep original API field names — renaming to last_name / team_id happens in public.players view
     return df.select([
         "id",
         "first_name",
-        pl.col("second_name").alias("last_name"),
+        "second_name",   # renamed to last_name in public.players view
         "web_name",
-        pl.col("team").alias("team_id"),
+        "team",          # renamed to team_id in public.players view
         "element_type",
         "now_cost",
         "status",
@@ -67,11 +68,13 @@ def transform_players(bootstrap: dict) -> pl.DataFrame:
 
 
 def transform_fixtures(fixtures: list[dict]) -> pl.DataFrame:
+    # Keep original API field names — renaming to gameweek_id / team_h_id / team_a_id
+    # happens in public.fixtures view
     return pl.DataFrame(fixtures).select([
         "id",
-        pl.col("event").alias("gameweek_id"),
-        pl.col("team_h").alias("team_h_id"),
-        pl.col("team_a").alias("team_a_id"),
+        "event",       # renamed to gameweek_id in public.fixtures view
+        "team_h",      # renamed to team_h_id in public.fixtures view
+        "team_a",      # renamed to team_a_id in public.fixtures view
         "team_h_score",
         "team_a_score",
         "finished",
@@ -97,11 +100,13 @@ def transform_player_gameweek_stats(histories: dict[int, list[dict]]) -> pl.Data
         pl.col(c).cast(pl.Float64) for c in _STAT_STRING_COLS if c in df.columns
     ])
 
+    # Keep original API field names — renaming to fixture_id / gameweek_id / opponent_team_id
+    # happens in public.player_gameweek_stats view
     return df.select([
         "player_id",
-        pl.col("fixture").alias("fixture_id"),
-        pl.col("round").alias("gameweek_id"),
-        pl.col("opponent_team").alias("opponent_team_id"),
+        "fixture",        # renamed to fixture_id in public.player_gameweek_stats view
+        "round",          # renamed to gameweek_id in public.player_gameweek_stats view
+        "opponent_team",  # renamed to opponent_team_id in public.player_gameweek_stats view
         "was_home",
         "minutes",
         "total_points",
