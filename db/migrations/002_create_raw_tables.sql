@@ -1,104 +1,247 @@
--- Raw tables store FPL API data as-fetched, using original API field names.
--- All renaming and enrichment lives in public.* views (see 003, 004).
+-- Raw tables store FPL API data as-fetched.
+-- All fields included, original API names preserved, no transformations.
+-- Renaming and enrichment lives in public.* views (see 003).
+-- String-typed numeric fields (influence, expected_goals, etc.) stored as text.
+-- Nested objects (chip_plays, stats, scout_risks, etc.) stored as jsonb.
 
 CREATE TABLE raw.teams (
     id                    int4  PRIMARY KEY,
+    code                  int4,
+    draw                  int4  NOT NULL DEFAULT 0,
+    form                  text,
+    loss                  int4  NOT NULL DEFAULT 0,
     name                  text  NOT NULL,
+    played                int4  NOT NULL DEFAULT 0,
+    points                int4  NOT NULL DEFAULT 0,
+    position              int4,
     short_name            text  NOT NULL,
+    strength              int4,
+    team_division         text,
+    unavailable           bool  NOT NULL DEFAULT false,
+    win                   int4  NOT NULL DEFAULT 0,
     strength_overall_home int4,
     strength_overall_away int4,
     strength_attack_home  int4,
     strength_attack_away  int4,
     strength_defence_home int4,
-    strength_defence_away int4
+    strength_defence_away int4,
+    pulse_id              int4
 );
 
 CREATE TABLE raw.gameweeks (
-    id                   int4        PRIMARY KEY,
-    name                 text        NOT NULL,
-    deadline_time        timestamptz NOT NULL,
-    finished             bool        NOT NULL DEFAULT false,
-    is_current           bool        NOT NULL DEFAULT false,
-    average_entry_score  int4,       -- null for future gameweeks
-    highest_score        int4        -- null for future gameweeks
+    id                        int4        PRIMARY KEY,
+    name                      text        NOT NULL,
+    deadline_time             timestamptz NOT NULL,
+    release_time              timestamptz,
+    average_entry_score       int4,
+    finished                  bool        NOT NULL DEFAULT false,
+    data_checked              bool        NOT NULL DEFAULT false,
+    highest_scoring_entry     int4,
+    deadline_time_epoch       int8,
+    deadline_time_game_offset int4        NOT NULL DEFAULT 0,
+    highest_score             int4,
+    is_previous               bool        NOT NULL DEFAULT false,
+    is_current                bool        NOT NULL DEFAULT false,
+    is_next                   bool        NOT NULL DEFAULT false,
+    cup_leagues_created       bool        NOT NULL DEFAULT false,
+    h2h_ko_matches_created    bool        NOT NULL DEFAULT false,
+    can_enter                 bool        NOT NULL DEFAULT false,
+    can_manage                bool        NOT NULL DEFAULT false,
+    released                  bool        NOT NULL DEFAULT false,
+    ranked_count              int4,
+    most_selected             int4,
+    most_transferred_in       int4,
+    top_element               int4,
+    transfers_made            int4        NOT NULL DEFAULT 0,
+    most_captained            int4,
+    most_vice_captained       int4,
+    overrides                 jsonb,
+    chip_plays                jsonb,
+    top_element_info          jsonb
 );
 
+-- Numeric-looking string fields (form "7.0", influence "445.8", etc.) stored as text
+-- to exactly match the API response. Cast to numeric in public.players view.
 CREATE TABLE raw.players (
-    id                  int4        PRIMARY KEY,
-    first_name          text        NOT NULL,
-    second_name         text        NOT NULL,   -- API name for last name
-    web_name            text        NOT NULL,
-    team                int4        NOT NULL REFERENCES raw.teams(id),  -- API name for team_id
-    element_type        int4        NOT NULL,   -- 1=GK 2=DEF 3=MID 4=FWD
-    now_cost            int4        NOT NULL,   -- price x10 (e.g. 95 = £9.5m)
-    status              text        NOT NULL,   -- a/d/i/s/u
-    news                text,
-    total_points        int4        NOT NULL DEFAULT 0,
-    form                numeric,
-    points_per_game     numeric,
-    selected_by_percent numeric,
-    minutes             int4        NOT NULL DEFAULT 0,
-    goals_scored        int4        NOT NULL DEFAULT 0,
-    assists             int4        NOT NULL DEFAULT 0,
-    clean_sheets        int4        NOT NULL DEFAULT 0,
-    bonus               int4        NOT NULL DEFAULT 0,
-    bps                 int4        NOT NULL DEFAULT 0,
-    influence           numeric,
-    creativity          numeric,
-    threat              numeric,
-    ict_index           numeric,
-    transfers_in        int4        NOT NULL DEFAULT 0,
-    transfers_out       int4        NOT NULL DEFAULT 0,
-    updated_at          timestamptz NOT NULL DEFAULT now()
+    id                                   int4  PRIMARY KEY,
+    code                                 int4,
+    can_transact                         bool,
+    can_select                           bool,
+    chance_of_playing_next_round         int4,
+    chance_of_playing_this_round         int4,
+    cost_change_event                    int4  NOT NULL DEFAULT 0,
+    cost_change_event_fall               int4  NOT NULL DEFAULT 0,
+    cost_change_start                    int4  NOT NULL DEFAULT 0,
+    cost_change_start_fall               int4  NOT NULL DEFAULT 0,
+    price_change_percent                 text,
+    dreamteam_count                      int4  NOT NULL DEFAULT 0,
+    element_type                         int4  NOT NULL,
+    ep_next                              text,
+    ep_this                              text,
+    event_points                         int4  NOT NULL DEFAULT 0,
+    first_name                           text  NOT NULL,
+    form                                 text,
+    in_dreamteam                         bool  NOT NULL DEFAULT false,
+    news                                 text,
+    news_added                           timestamptz,
+    now_cost                             int4  NOT NULL,
+    photo                                text,
+    points_per_game                      text,
+    removed                              bool  NOT NULL DEFAULT false,
+    second_name                          text  NOT NULL,
+    selected_by_percent                  text,
+    special                              bool  NOT NULL DEFAULT false,
+    squad_number                         int4,
+    status                               text  NOT NULL,
+    team                                 int4  NOT NULL REFERENCES raw.teams(id),
+    team_code                            int4,
+    total_points                         int4  NOT NULL DEFAULT 0,
+    transfers_in                         int4  NOT NULL DEFAULT 0,
+    transfers_in_event                   int4  NOT NULL DEFAULT 0,
+    transfers_out                        int4  NOT NULL DEFAULT 0,
+    transfers_out_event                  int4  NOT NULL DEFAULT 0,
+    value_form                           text,
+    value_season                         text,
+    web_name                             text  NOT NULL,
+    known_name                           text,
+    region                               int4,
+    team_join_date                       date,
+    birth_date                           date,
+    has_temporary_code                   bool  NOT NULL DEFAULT false,
+    opta_code                            text,
+    minutes                              int4  NOT NULL DEFAULT 0,
+    goals_scored                         int4  NOT NULL DEFAULT 0,
+    assists                              int4  NOT NULL DEFAULT 0,
+    clean_sheets                         int4  NOT NULL DEFAULT 0,
+    goals_conceded                       int4  NOT NULL DEFAULT 0,
+    own_goals                            int4  NOT NULL DEFAULT 0,
+    penalties_saved                      int4  NOT NULL DEFAULT 0,
+    penalties_missed                     int4  NOT NULL DEFAULT 0,
+    yellow_cards                         int4  NOT NULL DEFAULT 0,
+    red_cards                            int4  NOT NULL DEFAULT 0,
+    saves                                int4  NOT NULL DEFAULT 0,
+    bonus                                int4  NOT NULL DEFAULT 0,
+    bps                                  int4  NOT NULL DEFAULT 0,
+    influence                            text,
+    creativity                           text,
+    threat                               text,
+    ict_index                            text,
+    clearances_blocks_interceptions      int4  NOT NULL DEFAULT 0,
+    recoveries                           int4  NOT NULL DEFAULT 0,
+    tackles                              int4  NOT NULL DEFAULT 0,
+    defensive_contribution               int4  NOT NULL DEFAULT 0,
+    starts                               int4  NOT NULL DEFAULT 0,
+    expected_goals                       text,
+    expected_assists                     text,
+    expected_goal_involvements           text,
+    expected_goals_conceded              text,
+    corners_and_indirect_freekicks_order int4,
+    corners_and_indirect_freekicks_text  text,
+    direct_freekicks_order               int4,
+    direct_freekicks_text                text,
+    penalties_order                      int4,
+    penalties_text                       text,
+    influence_rank                       int4,
+    influence_rank_type                  int4,
+    creativity_rank                      int4,
+    creativity_rank_type                 int4,
+    threat_rank                          int4,
+    threat_rank_type                     int4,
+    ict_index_rank                       int4,
+    ict_index_rank_type                  int4,
+    expected_goals_per_90                numeric,
+    saves_per_90                         numeric,
+    expected_assists_per_90              numeric,
+    expected_goal_involvements_per_90    numeric,
+    expected_goals_conceded_per_90       numeric,
+    goals_conceded_per_90                numeric,
+    now_cost_rank                        int4,
+    now_cost_rank_type                   int4,
+    form_rank                            int4,
+    form_rank_type                       int4,
+    points_per_game_rank                 int4,
+    points_per_game_rank_type            int4,
+    selected_rank                        int4,
+    selected_rank_type                   int4,
+    starts_per_90                        numeric,
+    clean_sheets_per_90                  numeric,
+    defensive_contribution_per_90        numeric,
+    scout_risks                          jsonb,
+    scout_news_link                      text
 );
 
 CREATE INDEX idx_raw_players_team ON raw.players(team);
 
+-- stats is a jsonb array of match stat objects (goals, assists, bonus, etc.)
 CREATE TABLE raw.fixtures (
-    id                int4        PRIMARY KEY,
-    event             int4        REFERENCES raw.gameweeks(id),  -- API name for gameweek_id; null for blank gameweeks
-    team_h            int4        NOT NULL REFERENCES raw.teams(id),
-    team_a            int4        NOT NULL REFERENCES raw.teams(id),
-    team_h_score      int4,       -- null until played
-    team_a_score      int4,       -- null until played
-    finished          bool        NOT NULL DEFAULT false,
-    kickoff_time      timestamptz,
-    team_h_difficulty int4,       -- FDR 1-5
-    team_a_difficulty int4        -- FDR 1-5
+    id                   int4        PRIMARY KEY,
+    code                 int4,
+    event                int4        REFERENCES raw.gameweeks(id),
+    finished             bool        NOT NULL DEFAULT false,
+    finished_provisional bool        NOT NULL DEFAULT false,
+    kickoff_time         timestamptz,
+    minutes              int4        NOT NULL DEFAULT 0,
+    provisional_start_time bool      NOT NULL DEFAULT false,
+    started              bool,
+    team_a               int4        NOT NULL REFERENCES raw.teams(id),
+    team_a_score         int4,
+    team_h               int4        NOT NULL REFERENCES raw.teams(id),
+    team_h_score         int4,
+    stats                jsonb,
+    team_h_difficulty    int4,
+    team_a_difficulty    int4,
+    pulse_id             int4
 );
 
 CREATE INDEX idx_raw_fixtures_event ON raw.fixtures(event);
 
--- One row per player per fixture. PK is (player_id, fixture) — not (player_id, round) —
--- so double gameweeks (two fixtures in one gameweek) are handled correctly.
+-- PK is (element, fixture) — not (element, round) — to correctly handle double gameweeks.
+-- "element" is the FPL API name for player id.
 CREATE TABLE raw.player_gameweek_stats (
-    player_id                  int4    NOT NULL REFERENCES raw.players(id),
-    fixture                    int4    NOT NULL REFERENCES raw.fixtures(id),  -- API name for fixture_id
-    round                      int4    NOT NULL REFERENCES raw.gameweeks(id), -- API name for gameweek_id
-    opponent_team              int4    NOT NULL REFERENCES raw.teams(id),     -- API name for opponent_team_id
-    was_home                   bool    NOT NULL,
-    minutes                    int4    NOT NULL DEFAULT 0,
-    total_points               int4    NOT NULL DEFAULT 0,
-    goals_scored               int4    NOT NULL DEFAULT 0,
-    assists                    int4    NOT NULL DEFAULT 0,
-    clean_sheets               int4    NOT NULL DEFAULT 0,
-    bonus                      int4    NOT NULL DEFAULT 0,
-    bps                        int4    NOT NULL DEFAULT 0,
-    influence                  numeric,
-    creativity                 numeric,
-    threat                     numeric,
-    ict_index                  numeric,
-    expected_goals             numeric,
-    expected_assists           numeric,
-    expected_goal_involvements numeric,
-    expected_goals_conceded    numeric,
-    value                      int4,   -- price at time of GW (x10)
-    selected                   int4,   -- ownership count at time of GW
-    transfers_in               int4    NOT NULL DEFAULT 0,
-    transfers_out              int4    NOT NULL DEFAULT 0,
-    PRIMARY KEY (player_id, fixture)
+    element                         int4        NOT NULL REFERENCES raw.players(id),
+    fixture                         int4        NOT NULL REFERENCES raw.fixtures(id),
+    opponent_team                   int4        NOT NULL REFERENCES raw.teams(id),
+    total_points                    int4        NOT NULL DEFAULT 0,
+    was_home                        bool        NOT NULL,
+    kickoff_time                    timestamptz,
+    team_h_score                    int4,
+    team_a_score                    int4,
+    round                           int4        NOT NULL REFERENCES raw.gameweeks(id),
+    modified                        bool        NOT NULL DEFAULT false,
+    minutes                         int4        NOT NULL DEFAULT 0,
+    goals_scored                    int4        NOT NULL DEFAULT 0,
+    assists                         int4        NOT NULL DEFAULT 0,
+    clean_sheets                    int4        NOT NULL DEFAULT 0,
+    goals_conceded                  int4        NOT NULL DEFAULT 0,
+    own_goals                       int4        NOT NULL DEFAULT 0,
+    penalties_saved                 int4        NOT NULL DEFAULT 0,
+    penalties_missed                int4        NOT NULL DEFAULT 0,
+    yellow_cards                    int4        NOT NULL DEFAULT 0,
+    red_cards                       int4        NOT NULL DEFAULT 0,
+    saves                           int4        NOT NULL DEFAULT 0,
+    bonus                           int4        NOT NULL DEFAULT 0,
+    bps                             int4        NOT NULL DEFAULT 0,
+    influence                       text,
+    creativity                      text,
+    threat                          text,
+    ict_index                       text,
+    clearances_blocks_interceptions int4        NOT NULL DEFAULT 0,
+    recoveries                      int4        NOT NULL DEFAULT 0,
+    tackles                         int4        NOT NULL DEFAULT 0,
+    defensive_contribution          int4        NOT NULL DEFAULT 0,
+    starts                          int4        NOT NULL DEFAULT 0,
+    expected_goals                  text,
+    expected_assists                text,
+    expected_goal_involvements      text,
+    expected_goals_conceded         text,
+    value                           int4,
+    transfers_balance               int4        NOT NULL DEFAULT 0,
+    selected                        int4,
+    transfers_in                    int4        NOT NULL DEFAULT 0,
+    transfers_out                   int4        NOT NULL DEFAULT 0,
+    PRIMARY KEY (element, fixture)
 );
 
-CREATE INDEX idx_raw_pgs_player  ON raw.player_gameweek_stats(player_id);
+CREATE INDEX idx_raw_pgs_element ON raw.player_gameweek_stats(element);
 CREATE INDEX idx_raw_pgs_fixture ON raw.player_gameweek_stats(fixture);
 CREATE INDEX idx_raw_pgs_round   ON raw.player_gameweek_stats(round);

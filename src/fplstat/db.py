@@ -61,4 +61,4 @@ def upsert_fixtures(conn: psycopg2.extensions.connection, df: pl.DataFrame) -> N
 
 
 def upsert_player_gameweek_stats(conn: psycopg2.extensions.connection, df: pl.DataFrame) -> None:
-    _upsert(conn, "player_gameweek_stats", df, ["player_id", "fixture"])
+    _upsert(conn, "player_gameweek_stats", df, ["element", "fixture"])
