@@ -17,5 +17,6 @@ jobs:
 
       - name: Run ETL pipeline
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: uv run etl/pipeline.py
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: uv run python etl/pipeline.py
