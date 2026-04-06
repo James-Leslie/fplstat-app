@@ -74,11 +74,11 @@ st.markdown("## Player stats")
 st.caption("Click on columns for sorting")
 
 display = df[["pos", "team", "player", "price", "st", "mp", "pts",
-              "p90", "gs90", "a90", "gi90", "xg90", "xa90", "xgi90",
+              "p90", "xp90", "gs90", "a90", "gi90", "xg90", "xa90", "xgi90",
               "cs", "xgc", "xgc90", "tsb"]].copy()
 
 display.columns = ["Pos", "Team", "Player", "£", "ST", "MP", "Pts",
-                   "P90", "GS90", "A90", "GI90", "xG90", "xA90", "xGI90",
+                   "P90", "xP90", "GS90", "A90", "GI90", "xG90", "xA90", "xGI90",
                    "CS", "xGC", "xGC90", "TSB%"]
 
 st.dataframe(

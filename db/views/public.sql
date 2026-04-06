@@ -109,20 +109,41 @@ SELECT
         WHEN s.was_home THEN f.team_h_difficulty
         ELSE f.team_a_difficulty
     END                                     AS fdr,
-    -- Expected points: xG × goal pts by position + xA × 3 + xGC × -0.5 (GK/DEF only)
+    -- Expected points: full FPL scoring model using xStats where available,
+    -- actual counts for non-xStat components (minutes, saves, cards, bonus, etc.)
     ROUND(
-        COALESCE(s.expected_goals::numeric, 0) * CASE p.element_type
-            WHEN 1 THEN 6
-            WHEN 2 THEN 6
-            WHEN 3 THEN 5
-            ELSE 4
-        END
+        -- Appearance points
+        CASE WHEN s.minutes >= 60 THEN 2 WHEN s.minutes >= 1 THEN 1 ELSE 0 END
+        -- Goal points (xG proxy)
+        + COALESCE(s.expected_goals::numeric, 0) * CASE p.element_type
+            WHEN 1 THEN 6 WHEN 2 THEN 6 WHEN 3 THEN 5 ELSE 4
+          END
+        -- Assist points (xA proxy)
         + COALESCE(s.expected_assists::numeric, 0) * 3
-        + CASE
-            WHEN p.element_type IN (1, 2)
-            THEN COALESCE(s.expected_goals_conceded::numeric, 0) * -0.5
+        -- Clean sheet probability via Poisson: P(xGC=0) = e^(-xGC)
+        + CASE p.element_type
+            WHEN 1 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 4
+            WHEN 2 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 4
+            WHEN 3 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 1
             ELSE 0
           END
+        -- Goals conceded deduction: -1 per 2 xGC (GK/DEF only)
+        + CASE
+            WHEN p.element_type IN (1, 2)
+            THEN FLOOR(COALESCE(s.expected_goals_conceded::numeric, 0) / 2.0) * -1
+            ELSE 0
+          END
+        -- GK saves bonus
+        + CASE WHEN p.element_type = 1 THEN FLOOR(s.saves / 3.0) ELSE 0 END
+        -- Disciplinary (actual)
+        + s.yellow_cards * -1
+        + s.red_cards    * -3
+        + s.own_goals    * -2
+        -- Penalties (actual)
+        + s.penalties_saved  * 5
+        + s.penalties_missed * -2
+        -- Bonus (actual)
+        + s.bonus
     , 2)                                    AS xpts
 FROM raw.player_gameweek_stats s
 JOIN raw.fixtures f ON f.id = s.fixture
