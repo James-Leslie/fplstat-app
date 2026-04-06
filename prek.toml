@@ -1,0 +1,35 @@
+default_language_version.python = "3.13"
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "check-added-large-files" },
+  { id = "check-yaml" },
+  { id = "check-toml" },
+  { id = "check-json", exclude = "^\\.vscode/" },
+  { id = "detect-private-key" },
+  { id = "end-of-file-fixer" },
+  { id = "trailing-whitespace" },
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.6"
+hooks = [
+  { id = "ruff-check", args = ["--fix"] },
+  { id = "ruff-format" },
+]
+
+[[repos]]
+repo = "https://github.com/hukkin/mdformat"
+rev = "1.0.0"
+
+[[repos.hooks]]
+id = "mdformat"
+additional_dependencies = [
+  "mdformat-pyproject",
+  "mdformat-config",
+  "mdformat-ruff",
+  "mdformat-frontmatter",
+  "mdformat-admon",
+]
