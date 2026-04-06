@@ -2,10 +2,7 @@ import os
 
 import pandas as pd
 import streamlit as st
-from dotenv import load_dotenv
 from supabase import create_client
-
-load_dotenv()
 
 st.set_page_config(page_title="fplstat", layout="wide")
 
@@ -28,26 +25,62 @@ def fetch_stats(last_n: int | None) -> pd.DataFrame:
 col1, col2, col3, col4, col5 = st.columns([2, 2, 1.5, 1.5, 1.5])
 
 with col1:
-    team_filter = st.selectbox("Team", ["All"] + sorted([
-        "ARS", "AVL", "BOU", "BRE", "BHA", "CHE", "CRY", "EVE", "FUL",
-        "IPS", "LEI", "LIV", "MCI", "MUN", "NEW", "NFO", "SOU", "TOT",
-        "WHU", "WOL",
-    ]), index=0)
+    team_filter = st.selectbox(
+        "Team",
+        ["All"]
+        + sorted(
+            [
+                "ARS",
+                "AVL",
+                "BOU",
+                "BRE",
+                "BHA",
+                "CHE",
+                "CRY",
+                "EVE",
+                "FUL",
+                "IPS",
+                "LEI",
+                "LIV",
+                "MCI",
+                "MUN",
+                "NEW",
+                "NFO",
+                "SOU",
+                "TOT",
+                "WHU",
+                "WOL",
+            ]
+        ),
+        index=0,
+    )
 
 with col2:
     pos_filter = st.selectbox("Position", ["All", "GK", "DEF", "MID", "FWD"], index=0)
 
 with col3:
-    max_price = st.number_input("Max price (£)", min_value=3.0, max_value=16.0,
-                                value=16.0, step=0.1, format="%.1f")
+    max_price = st.number_input(
+        "Max price (£)",
+        min_value=3.0,
+        max_value=16.0,
+        value=16.0,
+        step=0.1,
+        format="%.1f",
+    )
 
 with col4:
-    min_minutes = st.number_input("Minutes played ≥", min_value=0, max_value=3800,
-                                  value=90, step=45)
+    min_minutes = st.number_input(
+        "Minutes played ≥", min_value=0, max_value=3800, value=90, step=45
+    )
 
 with col5:
-    last_n_options = {"Full season": None, "Last 1 GW": 1, "Last 3 GWs": 3,
-                      "Last 5 GWs": 5, "Last 8 GWs": 8}
+    last_n_options = {
+        "Full season": None,
+        "Last 1 GW": 1,
+        "Last 3 GWs": 3,
+        "Last 5 GWs": 5,
+        "Last 8 GWs": 8,
+    }
     last_n_label = st.selectbox("Gameweeks", list(last_n_options.keys()), index=0)
     last_n = last_n_options[last_n_label]
 
@@ -73,21 +106,59 @@ df = df[df["mp"] >= min_minutes]
 st.markdown("## Player stats")
 st.caption("Click on columns for sorting")
 
-display = df[["pos", "team", "player", "price", "st", "mp", "pts",
-              "p90", "xp90", "gs90", "a90", "gi90", "xg90", "xa90", "xgi90",
-              "cs", "xgc", "xgc90", "tsb"]].copy()
+display = df[
+    [
+        "pos",
+        "team",
+        "player",
+        "price",
+        "st",
+        "mp",
+        "pts",
+        "p90",
+        "xp90",
+        "gs90",
+        "a90",
+        "gi90",
+        "xg90",
+        "xa90",
+        "xgi90",
+        "cs",
+        "xgc",
+        "xgc90",
+        "tsb",
+    ]
+].copy()
 
-display.columns = ["Pos", "Team", "Player", "£", "ST", "MP", "Pts",
-                   "P90", "xP90", "GS90", "A90", "GI90", "xG90", "xA90", "xGI90",
-                   "CS", "xGC", "xGC90", "TSB%"]
+display.columns = [
+    "Pos",
+    "Team",
+    "Player",
+    "£",
+    "ST",
+    "MP",
+    "Pts",
+    "P90",
+    "xP90",
+    "GS90",
+    "A90",
+    "GI90",
+    "xG90",
+    "xA90",
+    "xGI90",
+    "CS",
+    "xGC",
+    "xGC90",
+    "TSB%",
+]
 
 st.dataframe(
     display,
     width="stretch",
     hide_index=True,
     column_config={
-        "£":    st.column_config.NumberColumn(format="%.1f"),
+        "£": st.column_config.NumberColumn(format="%.1f"),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
-        "P90":  st.column_config.NumberColumn(format="%.1f"),
+        "P90": st.column_config.NumberColumn(format="%.1f"),
     },
 )
