@@ -1,6 +1,8 @@
+CREATE SCHEMA IF NOT EXISTS raw;
+
 -- Raw tables store FPL API data as-fetched.
 -- All fields included, original API names preserved, no transformations.
--- Renaming and enrichment lives in public.* views (see 003).
+-- Renaming and enrichment lives in public.* views.
 -- String-typed numeric fields (influence, expected_goals, etc.) stored as text.
 -- Nested objects (chip_plays, stats, scout_risks, etc.) stored as jsonb.
 
