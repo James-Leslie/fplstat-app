@@ -3,7 +3,7 @@ import time
 from dotenv import load_dotenv
 
 from fplstat.db import (
-    get_connection,
+    get_client,
     upsert_fixtures,
     upsert_gameweeks,
     upsert_player_gameweek_stats,
@@ -57,31 +57,30 @@ def run() -> None:
     stats_df = transform_player_gameweek_stats(histories)
     _done(t)
 
-    t = _step("Connecting to database")
-    conn = get_connection()
+    t = _step("Creating Supabase client")
+    client = get_client()
     _done(t)
 
     t = _step(f"Upserting {len(teams_df)} teams")
-    upsert_teams(conn, teams_df)
+    upsert_teams(client, teams_df)
     _done(t)
 
     t = _step(f"Upserting {len(gameweeks_df)} gameweeks")
-    upsert_gameweeks(conn, gameweeks_df)
+    upsert_gameweeks(client, gameweeks_df)
     _done(t)
 
     t = _step(f"Upserting {len(players_df)} players")
-    upsert_players(conn, players_df)
+    upsert_players(client, players_df)
     _done(t)
 
     t = _step(f"Upserting {len(fixtures_df)} fixtures")
-    upsert_fixtures(conn, fixtures_df)
+    upsert_fixtures(client, fixtures_df)
     _done(t)
 
     t = _step(f"Upserting {len(stats_df)} player_gameweek_stats rows")
-    upsert_player_gameweek_stats(conn, stats_df)
+    upsert_player_gameweek_stats(client, stats_df)
     _done(t)
 
-    conn.close()
     print(f"=== Done in {time.monotonic() - pipeline_start:.1f}s ===")
 
 
