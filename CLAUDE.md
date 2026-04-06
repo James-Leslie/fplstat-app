@@ -1,19 +1,24 @@
 # fplstat
 
-## Package Management
+A self-service analytics app for Fantasy Premier League players.
 
-This project uses [uv](https://docs.astral.sh/uv/) for Python package management.
+See @README.md for project overview and @ARCHITECTURE.md for an outline of the stack used in this project.
 
-- Add packages: `uv add <package>`
-- Remove packages: `uv remove <package>`
-- Run scripts: `uv run <script>`
-- Never use `pip install` directly.
+# Development environment:
 
-## Frontend (Streamlit)
+- **Git**: Use `gh` and `git`
+- **Supabase** Use the supabase mcp server for interacting with the backend, including database migrations
+- **Python**: Use `uv` for ALL operations - see the **python-project-management** skill for details, or use `uv help`
+- **Streamlit**: Use `uv run streamlit run app/app.py` to launch the app for you or the user to view in the browser
 
-- Launch the app: `uv run streamlit run app/app.py`
+# Workflow
 
-## Database
+All work is to be done in the following loop:
 
-- Canonical SQL source files live in `db/` subdirectories (`db/views/`, `db/functions/`, `db/tables/`, `db/grants/`).
-- To apply schema changes: edit the canonical source file, then apply via `mcp__supabase__apply_migration`.
+1. Plan: devise a detailed implementation plan to be signed off by the user
+1. Branch: create a feature branch to do implementation on
+1. Implement: make considered, surgical changes, keep the user involved as you go if they can do UX testing or provide general feedback
+1. Test: for any new functionality, add coverage in @/test
+1. Commit: make targeted commits with short messages, commits should be small and often
+1. Repeat steps 3-5 until all steps in the implementation plan are complete
+1. Merge: merge the feature branch into main
