@@ -5,10 +5,10 @@ from data import fetch_fixtures, fetch_gameweek_info, fetch_team_id_map
 
 # ── FDR colour scheme ───────────────────────────────────────────────────────
 
-FDR_COLOURS: dict[int, tuple[str, str | None]] = {
-    1: ("darkgreen", None),
-    2: ("#09fc7b", None),
-    3: ("#e7e7e8", None),
+FDR_COLOURS: dict[int, tuple[str, str]] = {
+    1: ("darkgreen", "white"),
+    2: ("#09fc7b", "black"),
+    3: ("#e7e7e8", "black"),
     4: ("#ff1651", "white"),
     5: ("#80072d", "white"),
 }
@@ -116,10 +116,7 @@ def _apply_fdr_colours(row: pd.Series) -> list[str]:
         fdr_val = int(fdr_matrix.loc[team, col])  # type: ignore[arg-type]
         if fdr_val in FDR_COLOURS:
             bg, fg = FDR_COLOURS[fdr_val]
-            css = f"background-color: {bg};"
-            if fg:
-                css += f" color: {fg};"
-            styles.append(css)
+            styles.append(f"background-color: {bg}; color: {fg};")
         else:
             styles.append("")
     return styles
