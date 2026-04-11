@@ -128,4 +128,4 @@ styled = display_matrix.style.apply(_apply_fdr_colours, axis=1)
 
 st.markdown("## Fixtures")
 st.caption("Sorted by average fixture difficulty — easiest schedules at the top")
-st.dataframe(styled, use_container_width=True, height=750)
+st.dataframe(styled, width="stretch", height=750)
