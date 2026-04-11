@@ -1,9 +1,15 @@
+import math
+
 import pandas as pd
 import streamlit as st
 
 from data import fetch_stats, fetch_teams
 
 # ── Filters ──────────────────────────────────────────────────────────────────
+
+_all = fetch_stats(None)
+_price_min = float(_all["price"].min()) if not _all.empty else 3.0
+_price_max = float(_all["price"].max()) if not _all.empty else 16.0
 
 col1, col2, col3, col4, col5 = st.columns([2, 2, 1.5, 1.5, 1.5])
 
@@ -16,13 +22,17 @@ with col2:
     pos_filter = st.selectbox("Position", ["All", "GK", "DEF", "MID", "FWD"], index=0)
 
 with col3:
-    max_price = st.number_input(
+    _price_steps = list(
+        reversed([
+            round(p * 0.5, 1)
+            for p in range(int(_price_min * 2), math.ceil(_price_max * 2) + 1)
+        ])
+    )
+    max_price = st.selectbox(
         "Max price (£)",
-        min_value=3.0,
-        max_value=16.0,
-        value=16.0,
-        step=0.1,
-        format="%.1f",
+        options=_price_steps,
+        index=0,
+        format_func=lambda p: f"£{p:.1f}",
     )
 
 with col4:
