@@ -1,8 +1,14 @@
+# Streamlit app: filterable FPL player stats table.
+# Connects directly to Supabase — no API server layer.
+# Data flows: public.player_stats() RPC → client-side filtering → st.dataframe.
+
 import os
 
 import pandas as pd
 import streamlit as st
 from supabase import create_client
+
+# ── Setup ─────────────────────────────────────────────────────────────────────
 
 st.set_page_config(page_title="fplstat", layout="wide")
 
@@ -12,6 +18,10 @@ def get_client():
     return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
 
 
+# ── Data fetching ─────────────────────────────────────────────────────────────
+
+# player_stats() aggregates per-player stats for the season or a recent GW window.
+# Cached for 5 minutes to avoid hammering the DB on every Streamlit interaction.
 @st.cache_data(ttl=300)
 def fetch_stats(last_n: int | None) -> pd.DataFrame:
     client = get_client()
@@ -20,41 +30,24 @@ def fetch_stats(last_n: int | None) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# Team short codes (e.g. ARS, LIV) sourced from public.teams so the list
+# stays accurate across promotions and relegations without touching this file.
+@st.cache_data(ttl=300)
+def fetch_teams() -> list[str]:
+    client = get_client()
+    rows = client.from_("teams").select("short_name").execute().data
+    return sorted(r["short_name"] for r in rows)
+
+
 # ── Filters ──────────────────────────────────────────────────────────────────
 
 col1, col2, col3, col4, col5 = st.columns([2, 2, 1.5, 1.5, 1.5])
 
+# Team: populated from DB so it reflects the current season's clubs.
 with col1:
-    team_filter = st.selectbox(
-        "Team",
-        ["All"]
-        + sorted(
-            [
-                "ARS",
-                "AVL",
-                "BOU",
-                "BRE",
-                "BHA",
-                "CHE",
-                "CRY",
-                "EVE",
-                "FUL",
-                "IPS",
-                "LEI",
-                "LIV",
-                "MCI",
-                "MUN",
-                "NEW",
-                "NFO",
-                "SOU",
-                "TOT",
-                "WHU",
-                "WOL",
-            ]
-        ),
-        index=0,
-    )
+    team_filter = st.selectbox("Team", ["All"] + fetch_teams(), index=0)
 
+# Position: fixed FPL categories — GK, DEF, MID, FWD never change.
 with col2:
     pos_filter = st.selectbox("Position", ["All", "GK", "DEF", "MID", "FWD"], index=0)
 
@@ -73,6 +66,8 @@ with col4:
         "Minutes played ≥", min_value=0, max_value=3800, value=90, step=45
     )
 
+# Gameweeks: controls which window is passed to the player_stats() RPC.
+# All other filters are applied client-side on the returned DataFrame.
 with col5:
     last_n_options = {
         "Full season": None,
@@ -92,6 +87,8 @@ if df.empty:
     st.info("No data available.")
     st.stop()
 
+# Client-side filtering — team, position, price, and minutes are not pushed
+# to the DB because the full dataset is small enough to filter in-process.
 if team_filter != "All":
     df = df[df["team"] == team_filter]
 
@@ -106,6 +103,7 @@ df = df[df["mp"] >= min_minutes]
 st.markdown("## Player stats")
 st.caption("Click on columns for sorting")
 
+# Select and rename columns for display (internal snake_case → readable headers).
 display = df[
     [
         "pos",
