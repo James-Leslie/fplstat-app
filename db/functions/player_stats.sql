@@ -15,12 +15,26 @@ CREATE OR REPLACE FUNCTION public.player_stats(
     last_n  int DEFAULT NULL
 )
 RETURNS TABLE (
-    player_id int, pos text, team text, player text, price numeric,
-    st bigint, mp bigint, pts bigint,
-    p90 numeric, gs90 numeric, a90 numeric, gi90 numeric,
-    xg90 numeric, xa90 numeric, xgi90 numeric,
-    cs bigint, xgc numeric, xgc90 numeric, tsb numeric,
-    xp90 numeric
+    player_id int,
+    pos       text,
+    team      text,
+    player    text,
+    price     numeric,
+    st        bigint,
+    mp        bigint,
+    pts       bigint,
+    p90       numeric,
+    gs90      numeric,
+    a90       numeric,
+    gi90      numeric,
+    xg90      numeric,
+    xa90      numeric,
+    xgi90     numeric,
+    cs        bigint,
+    xgc       numeric,
+    xgc90     numeric,
+    tsb       numeric,
+    xp90      numeric
 )
 LANGUAGE sql STABLE AS $$
     SELECT
