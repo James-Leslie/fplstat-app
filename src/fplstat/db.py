@@ -19,7 +19,9 @@ def _upsert(client: Client, table: str, df: pl.DataFrame, on_conflict: str) -> N
         return
     for i in range(0, len(records), _BATCH_SIZE):
         batch = records[i : i + _BATCH_SIZE]
-        client.schema("raw").table(table).upsert(batch, on_conflict=on_conflict).execute()
+        client.schema("raw").table(table).upsert(
+            batch, on_conflict=on_conflict
+        ).execute()
 
 
 def upsert_teams(client: Client, df: pl.DataFrame) -> None:

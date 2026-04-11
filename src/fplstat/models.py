@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class Team(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
     id: int
     code: int
@@ -31,7 +31,7 @@ class Team(BaseModel):
 
 
 class Gameweek(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
     id: int
     name: str
@@ -64,7 +64,7 @@ class Gameweek(BaseModel):
 
 
 class Player(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
     id: int
     code: int
@@ -109,7 +109,7 @@ class Player(BaseModel):
 
 
 class Fixture(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
     id: int
     code: int
@@ -129,7 +129,7 @@ class Fixture(BaseModel):
 
 
 class PlayerGameweekStat(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
     element: int
     fixture: int

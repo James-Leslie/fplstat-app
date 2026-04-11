@@ -36,7 +36,7 @@ RETURNS TABLE (
     tsb       numeric,
     xp90      numeric
 )
-LANGUAGE sql STABLE AS $$
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
     SELECT
         p.id                                                                             AS player_id,
         CASE p.element_type
