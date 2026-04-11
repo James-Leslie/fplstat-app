@@ -1,7 +1,7 @@
 -- Season or GW-range aggregate per player.
 -- Call with no args for full season; pass gw_from/gw_to to filter by range,
 -- or last_n to select the N most recent finished gameweeks.
--- Returns: pos, team, player, price, st, mp, pts,
+-- Returns: pos, team, team_code, player, price, st, mp, pts,
 --          p90, gs90, a90, gi90, xg90, xa90, xgi90,
 --          cs, xgc, xgc90, tsb, xp90.
 -- Queries public.player_gameweek_stats so the xpts formula isn't duplicated.
@@ -18,6 +18,7 @@ RETURNS TABLE (
     player_id int,
     pos       text,
     team      text,
+    team_code int,
     player    text,
     price     numeric,
     st        bigint,
@@ -43,6 +44,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
             WHEN 1 THEN 'GK' WHEN 2 THEN 'DEF' WHEN 3 THEN 'MID' ELSE 'FWD'
         END                                                                              AS pos,
         t.short_name                                                                     AS team,
+        t.code                                                                           AS team_code,
         p.web_name                                                                       AS player,
         p.now_cost / 10.0                                                                AS price,
         SUM(v.starts)                                                                    AS st,
@@ -82,7 +84,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
                 AND (gw_to   IS NULL OR v.gameweek_id <= gw_to)
         END
       )
-    GROUP BY p.id, p.element_type, t.short_name, p.web_name, p.now_cost, p.selected_by_percent
+    GROUP BY p.id, p.element_type, t.short_name, t.code, p.web_name, p.now_cost, p.selected_by_percent
     HAVING SUM(v.minutes) > 0
     ORDER BY SUM(v.total_points) DESC
 $$;

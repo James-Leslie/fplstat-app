@@ -72,6 +72,11 @@ if pos_filter != "All":
 df = df.loc[df["price"] <= max_price]
 df = df.loc[df["mp"] >= min_minutes]
 
+# Build shirt image URL from team code.
+df["shirt"] = df["team_code"].apply(
+    lambda c: f"https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{c}-66.webp"
+)
+
 # ── Table ─────────────────────────────────────────────────────────────────────
 
 st.markdown("## Player stats")
@@ -80,6 +85,7 @@ st.caption("Click on columns for sorting")
 # Select and rename columns for display (internal snake_case → readable headers).
 display = df.filter(
     items=[
+        "shirt",
         "pos",
         "team",
         "player",
@@ -102,6 +108,7 @@ display = df.filter(
     ]
 ).rename(
     columns={
+        "shirt": " ",
         "pos": "Pos",
         "team": "Team",
         "player": "Player",
@@ -129,6 +136,7 @@ st.dataframe(
     width="stretch",
     hide_index=True,
     column_config={
+        " ": st.column_config.ImageColumn(" ", width="small"),
         "£": st.column_config.NumberColumn(format="%.1f"),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
         "P90": st.column_config.NumberColumn(format="%.1f"),
