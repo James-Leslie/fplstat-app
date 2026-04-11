@@ -44,7 +44,9 @@ def run() -> None:
     _done(t)
 
     player_ids = [p["id"] for p in bootstrap["elements"]]
-    t = _step(f"Fetching histories for {len(player_ids)} players (async, 10 concurrent)")
+    t = _step(
+        f"Fetching histories for {len(player_ids)} players (async, 10 concurrent)"
+    )
     histories = fetch_player_histories(player_ids)
     _done(t)
 
