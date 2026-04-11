@@ -13,12 +13,12 @@ FDR_COLOURS: dict[int, tuple[str, str]] = {
     5: ("#80072d", "white"),
 }
 
-# ── Sidebar ─────────────────────────────────────────────────────────────────
+# ── Filters ─────────────────────────────────────────────────────────────────
 
 gw_info = fetch_gameweek_info()
 gw_min, gw_max, gw_next = gw_info["min_gw"], gw_info["max_gw"], gw_info["next_gw"]
 
-start_gw, end_gw = st.sidebar.slider(
+start_gw, end_gw = st.slider(
     "Gameweek range",
     min_value=gw_min,
     max_value=gw_max,
