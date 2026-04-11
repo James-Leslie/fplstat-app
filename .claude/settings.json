@@ -1,5 +1,32 @@
 {
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uvx ruff format",
+            "if": "Edit(*.py)|Write(*.py)",
+            "statusMessage": "ruff format..."
+          },
+          {
+            "type": "command",
+            "command": "uvx ruff check --fix",
+            "if": "Edit(*.py)|Write(*.py)",
+            "statusMessage": "ruff check..."
+          },
+          {
+            "type": "command",
+            "command": "uvx ty check",
+            "if": "Edit(*.py)|Write(*.py)",
+            "statusMessage": "ty check..."
+          }
+        ]
+      }
+    ]
   }
 }
