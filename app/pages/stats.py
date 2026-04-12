@@ -11,17 +11,31 @@ _all = fetch_stats(None)
 _price_min = float(_all["price"].min()) if not _all.empty else 3.0
 _price_max = float(_all["price"].max()) if not _all.empty else 16.0
 
-col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 1.5, 1.5, 1.5, 1.5])
+col1, col2, col3, col4, col5 = st.columns([2, 2, 1.5, 1.5, 1.5])
+
+# Gameweeks: controls which window is passed to the player_stats() RPC.
+# All other filters are applied client-side on the returned DataFrame.
+with col1:
+    last_n_options = {
+        "Full season": None,
+        "Last 1 GW": 1,
+        "Last 3 GWs": 3,
+        "Last 5 GWs": 5,
+        "Last 8 GWs": 8,
+    }
+    last_n_label = st.selectbox("Gameweeks", list(last_n_options.keys()), index=0)
+    last_n = last_n_options[last_n_label]
+    include_current = st.toggle("Include current GW", value=True)
 
 # Team: populated from DB so it reflects the current season's clubs.
-with col1:
+with col2:
     team_filter = st.selectbox("Team", ["All"] + fetch_teams(), index=0)
 
 # Position: fixed FPL categories — GK, DEF, MID, FWD never change.
-with col2:
+with col3:
     pos_filter = st.selectbox("Position", ["All", "GK", "DEF", "MID", "FWD"], index=0)
 
-with col3:
+with col4:
     _price_steps = list(
         reversed(
             [
@@ -37,27 +51,10 @@ with col3:
         format_func=lambda p: f"£{p:.1f}",
     )
 
-with col4:
+with col5:
     min_minutes = st.number_input(
         "Minutes played ≥", min_value=0, max_value=3800, value=90, step=45
     )
-
-# Gameweeks: controls which window is passed to the player_stats() RPC.
-# All other filters are applied client-side on the returned DataFrame.
-with col5:
-    last_n_options = {
-        "Full season": None,
-        "Last 1 GW": 1,
-        "Last 3 GWs": 3,
-        "Last 5 GWs": 5,
-        "Last 8 GWs": 8,
-    }
-    last_n_label = st.selectbox("Gameweeks", list(last_n_options.keys()), index=0)
-    last_n = last_n_options[last_n_label]
-
-with col6:
-    st.write("")  # align with other inputs
-    include_current = st.toggle("Include current GW", value=True)
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 
