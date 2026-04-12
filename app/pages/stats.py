@@ -88,7 +88,6 @@ df["shirt"] = df["team_code"].apply(
         f"https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{c}-66.webp"
     )
 )
-df["player_team"] = df["player"] + " · " + df["team"]
 
 # ── Player detail modal ──────────────────────────────────────────────────────
 
@@ -225,7 +224,7 @@ display = df.filter(
     items=[
         "shirt",
         "pos",
-        "player_team",
+        "player",
         "price",
         "st",
         "mp",
@@ -248,7 +247,7 @@ display = df.filter(
     columns={
         "shirt": "Team",
         "pos": "Pos",
-        "player_team": "Player",
+        "player": "Player",
         "price": "£",
         "st": "ST",
         "mp": "MP",
