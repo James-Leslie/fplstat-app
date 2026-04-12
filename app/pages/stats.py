@@ -85,6 +85,7 @@ df = df.loc[df["price"] <= max_price]
 df = df.loc[df["mp_pct"] >= min_mp_pct]
 df = df.reset_index(drop=True)
 
+# Build shirt image URL from team code.
 df["shirt"] = df["team_code"].apply(
     lambda c: (
         f"https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{c}-66.webp"
