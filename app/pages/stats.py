@@ -83,6 +83,8 @@ df = df.loc[df["price"] <= max_price]
 df = df.loc[df["mp_pct"] >= min_mp_pct]
 df = df.reset_index(drop=True)
 
+df["info"] = "ℹ️"
+
 # Build shirt image URL from team code.
 df["shirt"] = df["team_code"].apply(
     lambda c: (
@@ -218,11 +220,12 @@ def _show_player_detail(player_row: pd.Series) -> None:
 # ── Table ─────────────────────────────────────────────────────────────────────
 
 st.markdown("## Player stats")
-st.caption("Click on columns for sorting")
+st.caption("Click a row to see player details · Click column headers to sort")
 
 # Select and rename columns for display (internal snake_case → readable headers).
 display = df.filter(
     items=[
+        "info",
         "shirt",
         "pos",
         "team",
@@ -247,6 +250,7 @@ display = df.filter(
     ]
 ).rename(
     columns={
+        "info": "ℹ️",
         "shirt": " ",
         "pos": "Pos",
         "team": "Team",
