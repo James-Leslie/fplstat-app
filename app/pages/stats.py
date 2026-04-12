@@ -83,8 +83,6 @@ df = df.loc[df["price"] <= max_price]
 df = df.loc[df["mp_pct"] >= min_mp_pct]
 df = df.reset_index(drop=True)
 
-df["info"] = "ℹ️"
-
 # Build shirt image URL from team code.
 df["shirt"] = df["team_code"].apply(
     lambda c: (
@@ -225,10 +223,8 @@ st.caption("Click a row to see player details · Click column headers to sort")
 # Select and rename columns for display (internal snake_case → readable headers).
 display = df.filter(
     items=[
-        "info",
         "shirt",
         "pos",
-        "team",
         "player",
         "price",
         "st",
@@ -250,10 +246,8 @@ display = df.filter(
     ]
 ).rename(
     columns={
-        "info": "ℹ️",
-        "shirt": " ",
+        "shirt": "Team",
         "pos": "Pos",
-        "team": "Team",
         "player": "Player",
         "price": "£",
         "st": "ST",
@@ -275,22 +269,29 @@ display = df.filter(
     }
 )
 
-event = st.dataframe(
+if "editor_key" not in st.session_state:
+    st.session_state.editor_key = 0
+
+display.insert(0, "ℹ️", False)
+
+edited = st.data_editor(
     display,
-    width="stretch",
     hide_index=True,
+    use_container_width=True,
     column_config={
-        " ": st.column_config.ImageColumn(" ", width="small"),
+        "ℹ️": st.column_config.CheckboxColumn("ℹ️", default=False, width="small"),
+        "Team": st.column_config.ImageColumn("Team", width="small"),
         "£": st.column_config.NumberColumn(format="%.1f"),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
         "P90": st.column_config.NumberColumn(format="%.1f"),
         "MP%": st.column_config.NumberColumn(format="%.1f"),
     },
-    on_select="rerun",
-    selection_mode="single-row",
-    key="player_stats_table",
+    disabled=[col for col in display.columns if col != "ℹ️"],
+    key=f"player_stats_editor_{st.session_state.editor_key}",
 )
 
-if event.selection.rows:
-    selected_idx = event.selection.rows[0]
+selected_rows = edited[edited["ℹ️"]]
+if not selected_rows.empty:
+    selected_idx = selected_rows.index[0]
+    st.session_state.editor_key += 1  # reset editor on next rerun to clear the tick
     _show_player_detail(df.iloc[selected_idx])
