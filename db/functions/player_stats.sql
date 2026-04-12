@@ -83,7 +83,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
                     WHERE finished = true
                     ORDER BY id DESC
                     LIMIT last_n
-                )
+                ) OR (include_current AND g.is_current = true)
             ELSE
                 (gw_from IS NULL OR v.gameweek_id >= gw_from)
                 AND (gw_to   IS NULL OR v.gameweek_id <= gw_to)
