@@ -1,11 +1,13 @@
 import math
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
 from data import (
     fetch_fixtures,
     fetch_gameweek_info,
+    fetch_player_history,
     fetch_stats,
     fetch_team_id_map,
     fetch_teams,
@@ -145,73 +147,210 @@ def _build_fdr_strip(team_short_name: str, num_gws: int = 8) -> list[dict]:
     return result
 
 
+_OUTCOME_STYLE: dict[str, str] = {
+    "W": "background-color:#00a651;color:white",
+    "D": "background-color:#e7e7e8;color:#333",
+    "L": "background-color:#e00030;color:white",
+}
+
+
+def _outcome(was_home: bool, home_score: int, away_score: int) -> str:
+    ps = home_score if was_home else away_score
+    os_ = away_score if was_home else home_score
+    if ps > os_:
+        return "W"
+    if ps < os_:
+        return "L"
+    return "D"
+
+
 @st.dialog("Player Details", width="large")
 def _show_player_detail(player_row: pd.Series) -> None:
-    """Modal showing detailed player stats and upcoming FDR strip."""
+    """Modal showing player header, key stats, per-GW history table + charts, and FDR strip."""
     # ── Header ──
-    col_shirt, col_info = st.columns([1, 4])
+    col_shirt, col_info = st.columns([1, 5])
     with col_shirt:
-        shirt_url = (
+        st.image(
             f"https://fantasy.premierleague.com/dist/img/shirts/standard/"
-            f"shirt_{int(player_row['team_code'])}-66.webp"
+            f"shirt_{int(player_row['team_code'])}-66.webp",
+            width=80,
         )
-        st.image(shirt_url, width=80)
     with col_info:
         st.subheader(player_row["player"])
         st.caption(
             f"{player_row['pos']}  ·  {player_row['team']}  ·  £{player_row['price']:.1f}"
         )
 
-    # ── Stats ──
-    st.markdown("##### Key Stats")
-    s1, s2, s3, s4 = st.columns(4)
-    s1.metric("Points", int(player_row["pts"]))
+    # ── Key stats ──
+    s1, s2, s3, s4, s5, s6, s7 = st.columns(7)
+    s1.metric("Pts", int(player_row["pts"]))
     s2.metric("P90", f"{player_row['p90']:.1f}")
     s3.metric("xP90", f"{player_row['xp90']:.1f}")
     s4.metric("TSB%", f"{player_row['tsb']:.1f}%")
+    s5.metric("ST", int(player_row["st"]))
+    s6.metric("MP%", f"{player_row['mp_pct']:.0f}%")
+    s7.metric("CS", int(player_row["cs"]))
 
-    s5, s6, s7, s8 = st.columns(4)
-    s5.metric("Starts", int(player_row["st"]))
-    s6.metric("Minutes", int(player_row["mp"]))
-    s7.metric("MP%", f"{player_row['mp_pct']:.1f}%")
-    s8.metric("Clean Sheets", int(player_row["cs"]))
+    st.divider()
 
-    s9, s10, s11, s12 = st.columns(4)
-    s9.metric("GS90", f"{player_row['gs90']:.2f}")
-    s10.metric("A90", f"{player_row['a90']:.2f}")
-    s11.metric("xG90", f"{player_row['xg90']:.2f}")
-    s12.metric("xA90", f"{player_row['xa90']:.2f}")
+    # ── Tabs ──
+    tab_hist, tab_fix = st.tabs(["History", "Fixtures"])
 
-    # ── FDR Strip ──
-    st.markdown("##### Upcoming Fixtures")
-    strip = _build_fdr_strip(player_row["team"])
-    if not strip:
-        st.caption("No upcoming fixture data available.")
-        return
+    # ── History tab ──
+    with tab_hist:
+        hist = fetch_player_history(int(player_row["player_id"]))
 
-    html_parts = []
-    for entry in strip:
-        gw = entry["gw"]
-        opponents = entry["opponents"]
-        fdr = entry["fdr"]
-        if fdr in FDR_COLOURS:
-            bg, fg = FDR_COLOURS[fdr]
+        if hist.empty:
+            st.caption("No match history available.")
         else:
-            bg, fg = "#e7e7e8", "#999"
-            opponents = "-"
-        html_parts.append(
-            f'<div style="display:inline-block;text-align:center;margin:2px;">'
-            f'<div style="font-size:0.7em;color:#666;">GW{gw}</div>'
-            f'<div style="background:{bg};color:{fg};padding:6px 10px;'
-            f'border-radius:6px;font-size:0.85em;font-weight:600;'
-            f'min-width:70px;">{opponents}</div>'
-            f"</div>"
-        )
-    st.html(
-        '<div style="display:flex;flex-wrap:wrap;gap:4px;">'
-        + "".join(html_parts)
-        + "</div>"
-    )
+            hist = hist.reset_index(drop=True)
+
+            # Derived columns
+            hist["Opponent"] = hist["opponent"] + " (" + hist["was_home"].map({True: "H", False: "A"}) + ")"
+            hist["Score"] = hist.apply(
+                lambda r: f"{r['home_score']}-{r['away_score']}"
+                if pd.notna(r["home_score"]) else "-",
+                axis=1,
+            )
+            outcomes = hist.apply(
+                lambda r: _outcome(r["was_home"], int(r["home_score"]), int(r["away_score"]))
+                if pd.notna(r["home_score"]) else "?",
+                axis=1,
+            )
+
+            display_hist = hist.rename(columns={
+                "gameweek_id": "GW",
+                "goals_scored": "GS",
+                "assists": "A",
+                "cs": "CS",
+                "goals_conceded": "GC",
+                "own_goals": "OG",
+                "penalties_saved": "PS",
+                "penalties_missed": "PM",
+                "yellow_cards": "YC",
+                "red_cards": "RC",
+                "saves": "S",
+                "bonus": "B",
+                "bps": "BPS",
+                "pts": "Pts",
+                "starts": "ST",
+                "minutes": "MP",
+                "xg": "xG",
+                "xa": "xA",
+                "xgi": "xGI",
+                "xgc": "xGC",
+                "influence": "I",
+                "creativity": "C",
+                "threat": "T",
+                "ict_index": "ICT",
+                "xpts": "xPts",
+            })[[
+                "GW", "Opponent", "Score", "Pts", "xPts", "ST", "MP",
+                "GS", "A", "xG", "xA", "xGI",
+                "CS", "GC", "xGC",
+                "OG", "PS", "PM", "YC", "RC", "S", "B", "BPS",
+                "I", "C", "T", "ICT",
+            ]]
+
+            score_col_idx = list(display_hist.columns).index("Score")
+
+            def _style_row(row: pd.Series) -> list[str]:
+                styles = [""] * len(row)
+                styles[score_col_idx] = _OUTCOME_STYLE.get(outcomes[row.name], "")
+                return styles
+
+            styled = display_hist.style.apply(_style_row, axis=1)
+            st.dataframe(styled, hide_index=True, width="stretch", height=350)
+
+            # ── Charts ──
+            chart_df = hist[["gameweek_id", "goals_scored", "assists", "xgi"]].copy()
+            chart_df = chart_df.sort_values("gameweek_id").reset_index(drop=True)
+            chart_df["gi"] = chart_df["goals_scored"] + chart_df["assists"]
+            chart_df["gi_delta"] = (chart_df["gi"] - chart_df["xgi"]).round(2)
+            chart_df["cum_gi"] = chart_df["gi"].cumsum()
+            chart_df["cum_xgi"] = chart_df["xgi"].cumsum()
+
+            # GI delta bar chart
+            delta_max = max(chart_df["gi_delta"].abs().max(), 0.5)
+            bar = (
+                alt.Chart(chart_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("gameweek_id:O", title="GW"),
+                    y=alt.Y("gi_delta:Q", title="GI delta"),
+                    color=alt.Color(
+                        "gi_delta:Q",
+                        scale=alt.Scale(
+                            scheme="redyellowgreen",
+                            domain=[-delta_max, delta_max],
+                        ),
+                        legend=alt.Legend(title="GI delta"),
+                    ),
+                    tooltip=[
+                        alt.Tooltip("gameweek_id:O", title="GW"),
+                        alt.Tooltip("gi_delta:Q", title="GI delta", format=".2f"),
+                    ],
+                )
+                .properties(title="GI − xGI delta  (positive = overperforming)")
+            )
+            st.altair_chart(bar, use_container_width=True)
+
+            # Cumulative GI vs xGI line chart
+            cum_melted = chart_df.melt(
+                id_vars=["gameweek_id"],
+                value_vars=["cum_gi", "cum_xgi"],
+                var_name="variable",
+                value_name="value",
+            )
+            cum_melted["variable"] = cum_melted["variable"].map(
+                {"cum_gi": "GI", "cum_xgi": "xGI"}
+            )
+            line = (
+                alt.Chart(cum_melted)
+                .mark_line(point=True)
+                .encode(
+                    x=alt.X("gameweek_id:Q", title="GW"),
+                    y=alt.Y("value:Q", title="Cumulative"),
+                    color=alt.Color("variable:N", legend=alt.Legend(title="")),
+                    tooltip=[
+                        alt.Tooltip("gameweek_id:Q", title="GW"),
+                        alt.Tooltip("variable:N", title="Metric"),
+                        alt.Tooltip("value:Q", title="Value", format=".2f"),
+                    ],
+                )
+                .properties(title="Cumulative GI and xGI")
+            )
+            st.altair_chart(line, use_container_width=True)
+
+    # ── Fixtures tab ──
+    with tab_fix:
+        strip = _build_fdr_strip(player_row["team"])
+        if not strip:
+            st.caption("No upcoming fixture data available.")
+        else:
+            html_parts = []
+            for entry in strip:
+                gw = entry["gw"]
+                opponents = entry["opponents"]
+                fdr = entry["fdr"]
+                if fdr in FDR_COLOURS:
+                    bg, fg = FDR_COLOURS[fdr]
+                else:
+                    bg, fg = "#e7e7e8", "#999"
+                    opponents = "-"
+                html_parts.append(
+                    f'<div style="display:inline-block;text-align:center;margin:2px;">'
+                    f'<div style="font-size:0.7em;color:#666;">GW{gw}</div>'
+                    f'<div style="background:{bg};color:{fg};padding:6px 10px;'
+                    f'border-radius:6px;font-size:0.85em;font-weight:600;'
+                    f'min-width:70px;">{opponents}</div>'
+                    f"</div>"
+                )
+            st.html(
+                '<div style="display:flex;flex-wrap:wrap;gap:4px;">'
+                + "".join(html_parts)
+                + "</div>"
+            )
 
 
 # ── Table ─────────────────────────────────────────────────────────────────────

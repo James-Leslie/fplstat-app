@@ -55,6 +55,14 @@ def fetch_fixtures() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=300)
+def fetch_player_history(player_id: int) -> pd.DataFrame:
+    """Per-gameweek stats for a single player (finished fixtures only)."""
+    client = get_client()
+    rows = client.rpc("player_history", {"p_player_id": player_id}).execute().data  # type: ignore[union-attr]
+    return pd.DataFrame(rows)  # type: ignore[arg-type]
+
+
+@st.cache_data(ttl=300)
 def fetch_gameweek_info() -> dict:
     """Return min/max GW ids and the next GW id (for slider defaults)."""
     client = get_client()
