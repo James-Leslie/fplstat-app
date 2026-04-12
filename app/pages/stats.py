@@ -92,6 +92,11 @@ df["shirt"] = df["team_code"].apply(
     )
 )
 
+# Build PP90 breakdown list for the BarChartColumn.
+# Order: Goals / Assists / Defensive / Bonus / Appearance
+_breakdown_cols = ["goals_pp90", "assists_pp90", "defensive_pp90", "bonus_pp90", "appearance_pp90"]
+df["pp90_breakdown"] = df[_breakdown_cols].values.tolist()
+
 # ── Player detail modal ──────────────────────────────────────────────────────
 
 
@@ -165,6 +170,82 @@ def _outcome(was_home: bool, home_score: int, away_score: int) -> str:
     return "D"
 
 
+# Points multipliers by position
+_GOAL_MULT = {"GK": 6, "DEF": 6, "MID": 5, "FWD": 4}
+_CS_MULT = {"GK": 4, "DEF": 4, "MID": 1, "FWD": 0}
+
+
+def _build_pp90_breakdown(hist: pd.DataFrame, pos: str) -> pd.DataFrame:
+    """Compute points-per-90 broken down by scoring category from per-GW history."""
+    total_minutes = hist["minutes"].sum()
+    if total_minutes == 0:
+        return pd.DataFrame()
+
+    per90_div = total_minutes / 90
+
+    # Goals
+    goals_pts = (hist["goals_scored"] * _GOAL_MULT[pos]).sum()
+
+    # Assists
+    assists_pts = (hist["assists"] * 3).sum()
+
+    # Defensive: clean sheet points + goals conceded deduction + DC
+    cs_pts = (hist["cs"] * _CS_MULT[pos]).sum()
+    gc_ded = 0
+    if pos in ("GK", "DEF"):
+        # Floor applied per gameweek, then summed
+        gc_ded = (hist["goals_conceded"] // 2 * -1).sum()
+    dc_pts = hist["defensive_contribution"].sum()
+    defensive_pts = cs_pts + gc_ded + dc_pts
+
+    # Bonus
+    bonus_pts = hist["bonus"].sum()
+
+    # Appearance: 2 if ≥60 min, 1 if ≥1 min
+    appearance_pts = hist["minutes"].apply(
+        lambda m: 2 if m >= 60 else (1 if m >= 1 else 0)
+    ).sum()
+
+    # Saves (GK only)
+    saves_pts = (hist["saves"] // 3).sum() if pos == "GK" else None
+
+    # Deductions
+    deductions_pts = (
+        hist["yellow_cards"] * -1
+        + hist["red_cards"] * -3
+        + hist["own_goals"] * -2
+        + hist["penalties_missed"] * -2
+    ).sum()
+
+    categories = []
+    for label, value in [
+        ("Goals", goals_pts),
+        ("Assists", assists_pts),
+        ("Defensive", defensive_pts),
+        ("Bonus", bonus_pts),
+        ("Appearance", appearance_pts),
+        ("Saves", saves_pts),
+        ("Deductions", deductions_pts),
+    ]:
+        if value is not None:
+            categories.append({"category": label, "pp90": round(value / per90_div, 2)})
+
+    return pd.DataFrame(categories)
+
+
+# Category colours for the PP90 breakdown chart
+_PP90_COLOURS = {
+    "Goals": "#2ecc71",
+    "Assists": "#3498db",
+    "Defensive": "#9b59b6",
+    "Bonus": "#f39c12",
+    "Appearance": "#95a5a6",
+    "Saves": "#1abc9c",
+    "Deductions": "#e74c3c",
+}
+_PP90_ORDER = ["Goals", "Assists", "Defensive", "Bonus", "Appearance", "Saves", "Deductions"]
+
+
 @st.dialog("Player Details", width="large")
 def _show_player_detail(player_row: pd.Series) -> None:
     """Modal showing player header, key stats, per-GW history table + charts, and FDR strip."""
@@ -228,6 +309,33 @@ def _show_player_detail(player_row: pd.Series) -> None:
         st.caption("No match history available.")
     else:
         hist = hist.reset_index(drop=True)
+
+        # ── PP90 Breakdown chart ──
+        breakdown_df = _build_pp90_breakdown(hist, player_row["pos"])
+        if not breakdown_df.empty:
+            st.markdown("##### Points per 90 Breakdown")
+            present_order = [c for c in _PP90_ORDER if c in breakdown_df["category"].values]
+            chart = (
+                alt.Chart(breakdown_df)
+                .mark_bar(cornerRadiusEnd=4)
+                .encode(
+                    x=alt.X("pp90:Q", title="Points per 90"),
+                    y=alt.Y("category:N", title=None, sort=present_order),
+                    color=alt.Color(
+                        "category:N",
+                        scale=alt.Scale(
+                            domain=list(_PP90_COLOURS.keys()),
+                            range=list(_PP90_COLOURS.values()),
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=[
+                        alt.Tooltip("category:N", title="Category"),
+                        alt.Tooltip("pp90:Q", title="PP90", format=".2f"),
+                    ],
+                )
+            )
+            st.altair_chart(chart, use_container_width=True)
 
         # Derived columns
         hist["Opponent"] = hist["opponent"] + " (" + hist["was_home"].map({True: "H", False: "A"}) + ")"
@@ -380,6 +488,7 @@ display = df.filter(
         "mp_pct",
         "pts",
         "p90",
+        "pp90_breakdown",
         "xp90",
         "gs90",
         "a90",
@@ -403,6 +512,7 @@ display = df.filter(
         "mp_pct": "MP%",
         "pts": "Pts",
         "p90": "P90",
+        "pp90_breakdown": "PP90",
         "xp90": "xP90",
         "gs90": "GS90",
         "a90": "A90",
@@ -427,6 +537,11 @@ event = st.dataframe(
         "£": st.column_config.NumberColumn(format="%.1f"),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
         "P90": st.column_config.NumberColumn(format="%.1f"),
+        "PP90": st.column_config.BarChartColumn(
+            "PP90 Breakdown",
+            help="Goals / Assists / Defensive / Bonus / Appearance",
+            y_min=0,
+        ),
         "MP%": st.column_config.NumberColumn(format="%.1f"),
     },
     on_select="rerun",
