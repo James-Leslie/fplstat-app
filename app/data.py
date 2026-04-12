@@ -46,7 +46,7 @@ def fetch_fixtures() -> pd.DataFrame:
     rows = (
         client.from_("fixtures")
         .select(
-            "gameweek_id, team_h_id, team_a_id, team_h_difficulty, team_a_difficulty"
+            "gameweek_id, team_h_id, team_a_id, team_h_difficulty, team_a_difficulty, finished"
         )
         .execute()
         .data
