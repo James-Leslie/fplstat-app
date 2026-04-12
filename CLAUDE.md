@@ -16,9 +16,8 @@ See @README.md for project overview and @ARCHITECTURE.md for an outline of the s
 All work is to be done in the following loop:
 
 1. Plan: devise a detailed implementation plan to be signed off by the user
-2. Branch: create a feature branch to do implementation on
-3. Implement: make considered, surgical changes, keep the user involved as you go if they can do UX testing or provide general feedback
-4. Test: for any new functionality, add coverage in @/test
-5. Commit: make targeted commits with short messages, commits should be small and often
-6. Repeat steps 3-5 until all steps in the implementation plan are complete
-7. Merge: merge the feature branch into main, delete the branch and clean up all loose ends
+2. Implement: make considered, surgical changes, keep the user involved as you go if they can do UX testing or provide general feedback
+3. Test: for any new functionality, add coverage in @/test
+4. Commit: make targeted commits with short messages, commits should be small and often
+5. Repeat steps 3-5 until all steps in the implementation plan are complete
+6. Push: push all commits and ensure there are no unstaged changes before moving on
