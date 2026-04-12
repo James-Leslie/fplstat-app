@@ -39,7 +39,14 @@ RETURNS TABLE (
     xgc       numeric,
     xgc90     numeric,
     tsb       numeric,
-    xp90      numeric
+    xp90      numeric,
+    goals_pp90      numeric,
+    assists_pp90    numeric,
+    defensive_pp90  numeric,
+    bonus_pp90      numeric,
+    appearance_pp90 numeric,
+    saves_pp90      numeric,
+    deductions_pp90 numeric
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
     SELECT
@@ -69,7 +76,27 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         ROUND(SUM(v.expected_goals_conceded) * 90.0
               / NULLIF(SUM(v.minutes), 0), 2)                                            AS xgc90,
         p.selected_by_percent::numeric                                                   AS tsb,
-        ROUND(SUM(v.xpts) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                        AS xp90
+        ROUND(SUM(v.xpts) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                        AS xp90,
+        -- PP90 breakdown columns
+        ROUND(SUM(v.goals_scored)
+              * CASE p.element_type WHEN 1 THEN 6 WHEN 2 THEN 6 WHEN 3 THEN 5 ELSE 4 END
+              * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                                     AS goals_pp90,
+        ROUND(SUM(v.assists) * 3 * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                 AS assists_pp90,
+        ROUND((
+            SUM(v.clean_sheets * CASE p.element_type
+                WHEN 1 THEN 4 WHEN 2 THEN 4 WHEN 3 THEN 1 ELSE 0 END)
+            + SUM(CASE WHEN p.element_type IN (1, 2)
+                  THEN FLOOR(v.goals_conceded / 2.0) * -1 ELSE 0 END)
+            + SUM(v.defensive_contribution)
+        ) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                                        AS defensive_pp90,
+        ROUND(SUM(v.bonus) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                       AS bonus_pp90,
+        ROUND(SUM(CASE WHEN v.minutes >= 60 THEN 2 WHEN v.minutes >= 1 THEN 1 ELSE 0 END)
+              * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                                     AS appearance_pp90,
+        ROUND(SUM(CASE WHEN p.element_type = 1 THEN FLOOR(v.saves / 3.0) ELSE 0 END)
+              * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                                     AS saves_pp90,
+        ROUND(SUM(v.yellow_cards * -1 + v.red_cards * -3
+                  + v.own_goals * -2 + v.penalties_missed * -2)
+              * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                                     AS deductions_pp90
     FROM public.player_gameweek_stats v
     JOIN raw.players   p ON p.id = v.player_id
     JOIN raw.teams     t ON t.id = p.team

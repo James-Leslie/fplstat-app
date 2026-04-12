@@ -283,6 +283,8 @@ SELECT
         + s.penalties_missed * -2
         -- Bonus (actual)
         + s.bonus
+        -- Defensive contribution (actual)
+        + s.defensive_contribution
     , 2)                                    AS xpts
 FROM raw.player_gameweek_stats s
 JOIN raw.fixtures f ON f.id = s.fixture
