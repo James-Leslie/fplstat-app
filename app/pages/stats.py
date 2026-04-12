@@ -217,7 +217,7 @@ def _show_player_detail(player_row: pd.Series) -> None:
 # ── Table ─────────────────────────────────────────────────────────────────────
 
 st.markdown("## Player stats")
-st.caption("Click a row to see player details · Click column headers to sort")
+st.caption("Click a row to view player details · Click column headers to sort")
 
 # Select and rename columns for display (internal snake_case → readable headers).
 display = df.filter(
@@ -268,15 +268,13 @@ display = df.filter(
     }
 )
 
-display.insert(0, "ℹ️", "ℹ️")
-
 event = st.dataframe(
     display,
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
     column_config={
-        "ℹ️": st.column_config.TextColumn("ℹ️", width="small"),
         "Team": st.column_config.ImageColumn("Team", width="small"),
+        "Player": st.column_config.TextColumn("Player"),
         "£": st.column_config.NumberColumn(format="%.1f"),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
         "P90": st.column_config.NumberColumn(format="%.1f"),
