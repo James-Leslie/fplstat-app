@@ -2,16 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from data import fetch_fixtures, fetch_gameweek_info, fetch_team_id_map
-
-# ── FDR colour scheme ───────────────────────────────────────────────────────
-
-FDR_COLOURS: dict[int, tuple[str, str]] = {
-    1: ("darkgreen", "white"),
-    2: ("#09fc7b", "black"),
-    3: ("#e7e7e8", "black"),
-    4: ("#ff1651", "white"),
-    5: ("#80072d", "white"),
-}
+from style import FDR_COLOURS
 
 # ── Filters ─────────────────────────────────────────────────────────────────
 
