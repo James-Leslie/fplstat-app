@@ -52,8 +52,8 @@ with col4:
     )
 
 with col5:
-    min_minutes = st.number_input(
-        "Minutes played ≥", min_value=0, max_value=3800, value=90, step=45
+    min_mp_pct = st.number_input(
+        "Minutes Played (%) ≥", min_value=0, max_value=100, value=50, step=5
     )
 
 # ── Data ─────────────────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ if pos_filter != "All":
     df = df.loc[df["pos"] == pos_filter]
 
 df = df.loc[df["price"] <= max_price]
-df = df.loc[df["mp"] >= min_minutes]
+df = df.loc[df["mp_pct"] >= min_mp_pct]
 
 # Build shirt image URL from team code.
 df["shirt"] = df["team_code"].apply(
@@ -97,6 +97,7 @@ display = df.filter(
         "price",
         "st",
         "mp",
+        "mp_pct",
         "pts",
         "p90",
         "xp90",
@@ -120,6 +121,7 @@ display = df.filter(
         "price": "£",
         "st": "ST",
         "mp": "MP",
+        "mp_pct": "MP%",
         "pts": "Pts",
         "p90": "P90",
         "xp90": "xP90",
@@ -145,5 +147,6 @@ st.dataframe(
         "£": st.column_config.NumberColumn(format="%.1f"),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
         "P90": st.column_config.NumberColumn(format="%.1f"),
+        "MP%": st.column_config.NumberColumn(format="%.1f"),
     },
 )

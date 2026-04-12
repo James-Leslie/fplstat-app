@@ -3,7 +3,7 @@
 -- or last_n to select the N most recent finished gameweeks.
 -- include_current (default true) controls whether fixtures from an in-progress
 -- gameweek are included; last_n always counts only fully-finished gameweeks.
--- Returns: pos, team, team_code, player, price, st, mp, pts,
+-- Returns: pos, team, team_code, player, price, st, mp, mp_pct, pts,
 --          p90, gs90, a90, gi90, xg90, xa90, xgi90,
 --          cs, xgc, xgc90, tsb, xp90.
 -- Queries public.player_gameweek_stats so the xpts formula isn't duplicated.
@@ -26,6 +26,7 @@ RETURNS TABLE (
     price     numeric,
     st        bigint,
     mp        bigint,
+    mp_pct    numeric,
     pts       bigint,
     p90       numeric,
     gs90      numeric,
@@ -52,6 +53,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         p.now_cost / 10.0                                                                AS price,
         SUM(v.starts)                                                                    AS st,
         SUM(v.minutes)                                                                   AS mp,
+        ROUND(SUM(v.minutes) * 100.0 / NULLIF(COUNT(*) * 90, 0), 1)                     AS mp_pct,
         SUM(v.total_points)                                                              AS pts,
         ROUND(SUM(v.total_points) * 90.0 / NULLIF(SUM(v.minutes), 0), 1)                AS p90,
         ROUND(SUM(v.goals_scored) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                AS gs90,
