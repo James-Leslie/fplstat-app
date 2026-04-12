@@ -46,11 +46,19 @@ def fetch_fixtures() -> pd.DataFrame:
     rows = (
         client.from_("fixtures")
         .select(
-            "gameweek_id, team_h_id, team_a_id, team_h_difficulty, team_a_difficulty"
+            "gameweek_id, team_h_id, team_a_id, team_h_difficulty, team_a_difficulty, finished"
         )
         .execute()
         .data
     )
+    return pd.DataFrame(rows)  # type: ignore[arg-type]
+
+
+@st.cache_data(ttl=300)
+def fetch_player_history(player_id: int) -> pd.DataFrame:
+    """Per-gameweek stats for a single player (finished fixtures only)."""
+    client = get_client()
+    rows = client.rpc("player_history", {"p_player_id": player_id}).execute().data  # type: ignore[union-attr]
     return pd.DataFrame(rows)  # type: ignore[arg-type]
 
 
