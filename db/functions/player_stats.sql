@@ -1,6 +1,8 @@
 -- Season or GW-range aggregate per player.
 -- Call with no args for full season; pass gw_from/gw_to to filter by range,
 -- or last_n to select the N most recent finished gameweeks.
+-- include_current (default true) controls whether fixtures from an in-progress
+-- gameweek are included; last_n always counts only fully-finished gameweeks.
 -- Returns: pos, team, team_code, player, price, st, mp, pts,
 --          p90, gs90, a90, gi90, xg90, xa90, xgi90,
 --          cs, xgc, xgc90, tsb, xp90.
@@ -10,9 +12,10 @@ DROP FUNCTION IF EXISTS public.player_stats(int, int, int);
 DROP FUNCTION IF EXISTS public.player_stats(int, int);
 
 CREATE OR REPLACE FUNCTION public.player_stats(
-    gw_from int DEFAULT NULL,
-    gw_to   int DEFAULT NULL,
-    last_n  int DEFAULT NULL
+    gw_from         int  DEFAULT NULL,
+    gw_to           int  DEFAULT NULL,
+    last_n          int  DEFAULT NULL,
+    include_current bool DEFAULT true
 )
 RETURNS TABLE (
     player_id int,
@@ -68,8 +71,10 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     FROM public.player_gameweek_stats v
     JOIN raw.players   p ON p.id = v.player_id
     JOIN raw.teams     t ON t.id = p.team
+    JOIN raw.fixtures  f ON f.id = v.fixture_id
     JOIN raw.gameweeks g ON g.id = v.gameweek_id
-    WHERE g.finished = true
+    WHERE f.finished = true
+      AND (include_current OR g.finished = true)
       AND (
         CASE
             WHEN last_n IS NOT NULL

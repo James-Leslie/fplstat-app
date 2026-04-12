@@ -11,7 +11,7 @@ _all = fetch_stats(None)
 _price_min = float(_all["price"].min()) if not _all.empty else 3.0
 _price_max = float(_all["price"].max()) if not _all.empty else 16.0
 
-col1, col2, col3, col4, col5 = st.columns([2, 2, 1.5, 1.5, 1.5])
+col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 1.5, 1.5, 1.5, 1.5])
 
 # Team: populated from DB so it reflects the current season's clubs.
 with col1:
@@ -23,10 +23,12 @@ with col2:
 
 with col3:
     _price_steps = list(
-        reversed([
-            round(p * 0.5, 1)
-            for p in range(int(_price_min * 2), math.ceil(_price_max * 2) + 1)
-        ])
+        reversed(
+            [
+                round(p * 0.5, 1)
+                for p in range(int(_price_min * 2), math.ceil(_price_max * 2) + 1)
+            ]
+        )
     )
     max_price = st.selectbox(
         "Max price (£)",
@@ -53,9 +55,13 @@ with col5:
     last_n_label = st.selectbox("Gameweeks", list(last_n_options.keys()), index=0)
     last_n = last_n_options[last_n_label]
 
+with col6:
+    st.write("")  # align with other inputs
+    include_current = st.toggle("Include current GW", value=True)
+
 # ── Data ─────────────────────────────────────────────────────────────────────
 
-df: pd.DataFrame = fetch_stats(last_n)
+df: pd.DataFrame = fetch_stats(last_n, include_current)
 
 if df.empty:
     st.info("No data available.")
@@ -74,7 +80,9 @@ df = df.loc[df["mp"] >= min_minutes]
 
 # Build shirt image URL from team code.
 df["shirt"] = df["team_code"].apply(
-    lambda c: f"https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{c}-66.webp"
+    lambda c: (
+        f"https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{c}-66.webp"
+    )
 )
 
 # ── Table ─────────────────────────────────────────────────────────────────────
