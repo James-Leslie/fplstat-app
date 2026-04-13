@@ -92,16 +92,27 @@ df["shirt"] = df["team_code"].apply(
     )
 )
 
-# Build PP90 breakdown list for the BarChartColumn.
-# Order: Goals / Assists / Defensive / Bonus / Appearance
-_breakdown_cols = [
+# Compute per-game stat variants from per-90 values: ppg = pp90 * mp / (90 * gp)
+_per90_to_pg_factor = df["mp"] / (90.0 * df["gp"])
+for col in ["gs90", "a90", "gi90", "xg90", "xa90", "xgi90", "xgc90"]:
+    pg_col = col.replace("90", "pg")
+    df[pg_col] = (df[col] * _per90_to_pg_factor).round(2)
+
+# Per-game breakdown: convert pp90 breakdown columns to per-game
+_breakdown_pp90_cols = [
     "goals_pp90",
     "assists_pp90",
     "defensive_pp90",
     "bonus_pp90",
     "appearance_pp90",
 ]
-df["pp90_breakdown"] = df[_breakdown_cols].values.tolist()
+for col in _breakdown_pp90_cols:
+    pg_col = col.replace("pp90", "ppg")
+    df[pg_col] = (df[col] * _per90_to_pg_factor).round(2)
+
+_breakdown_ppg_cols = [c.replace("pp90", "ppg") for c in _breakdown_pp90_cols]
+
+# Build breakdown list for the BarChartColumn (populated after toggle, below).
 
 # ── Player detail modal ──────────────────────────────────────────────────────
 
@@ -187,13 +198,19 @@ _GOAL_MULT = {"GK": 6, "DEF": 6, "MID": 5, "FWD": 4}
 _CS_MULT = {"GK": 4, "DEF": 4, "MID": 1, "FWD": 0}
 
 
-def _build_pp90_breakdown(hist: pd.DataFrame, pos: str) -> pd.DataFrame:
-    """Compute points-per-90 broken down by scoring category from per-GW history."""
+def _build_pp90_breakdown(
+    hist: pd.DataFrame, pos: str, per_game: bool = False
+) -> pd.DataFrame:
+    """Compute points broken down by scoring category from per-GW history.
+
+    When per_game is False, values are per-90-minutes; when True, per-game average.
+    """
     total_minutes = hist["minutes"].sum()
-    if total_minutes == 0:
+    num_games = len(hist)
+    if total_minutes == 0 or num_games == 0:
         return pd.DataFrame()
 
-    per90_div = total_minutes / 90
+    divisor = num_games if per_game else (total_minutes / 90)
 
     # Goals
     goals_pts = (hist["goals_scored"] * _GOAL_MULT[pos]).sum()
@@ -242,7 +259,7 @@ def _build_pp90_breakdown(hist: pd.DataFrame, pos: str) -> pd.DataFrame:
         ("Deductions", deductions_pts),
     ]:
         if value is not None:
-            categories.append({"category": label, "pp90": round(value / per90_div, 2)})
+            categories.append({"category": label, "value": round(value / divisor, 2)})
 
     return pd.DataFrame(categories)
 
@@ -269,7 +286,7 @@ _PP90_ORDER = [
 
 
 @st.dialog("Player Details", width="large")
-def _show_player_detail(player_row: pd.Series) -> None:
+def _show_player_detail(player_row: pd.Series, per_game: bool = False) -> None:
     """Modal showing player header, key stats, per-GW history table + charts, and FDR strip."""
     # ── Header ──
     col_shirt, col_info = st.columns([1, 5])
@@ -332,10 +349,11 @@ def _show_player_detail(player_row: pd.Series) -> None:
     else:
         hist = hist.reset_index(drop=True)
 
-        # ── PP90 Breakdown chart ──
-        breakdown_df = _build_pp90_breakdown(hist, player_row["pos"])
+        # ── Points Breakdown chart ──
+        breakdown_df = _build_pp90_breakdown(hist, player_row["pos"], per_game)
         if not breakdown_df.empty:
-            st.markdown("##### Points per 90 Breakdown")
+            rate_label = "Per Game" if per_game else "Per 90"
+            st.markdown(f"##### Points {rate_label} Breakdown")
             present_order = [
                 c for c in _PP90_ORDER if c in breakdown_df["category"].values
             ]
@@ -343,7 +361,7 @@ def _show_player_detail(player_row: pd.Series) -> None:
                 alt.Chart(breakdown_df)
                 .mark_bar(cornerRadiusEnd=4)
                 .encode(
-                    x=alt.X("pp90:Q", title="Points per 90"),
+                    x=alt.X("value:Q", title=f"Points {rate_label.lower()}"),
                     y=alt.Y("category:N", title=None, sort=present_order),
                     color=alt.Color(
                         "category:N",
@@ -355,7 +373,7 @@ def _show_player_detail(player_row: pd.Series) -> None:
                     ),
                     tooltip=[
                         alt.Tooltip("category:N", title="Category"),
-                        alt.Tooltip("pp90:Q", title="PP90", format=".2f"),
+                        alt.Tooltip("value:Q", title=rate_label, format=".2f"),
                     ],
                 )
             )
@@ -534,33 +552,61 @@ def _show_player_detail(player_row: pd.Series) -> None:
 
 # ── Table ─────────────────────────────────────────────────────────────────────
 
-st.markdown("## Player stats")
-st.caption("Click a row to view player details · Click column headers to sort")
+_hdr_col, _toggle_col = st.columns([4, 1])
+with _hdr_col:
+    st.markdown("## Player stats")
+    st.caption("Click a row to view player details · Click column headers to sort")
+with _toggle_col:
+    per_game = st.toggle(
+        "Per game", value=False, help="Switch between per-90 and per-game stats"
+    )
+
+# Build the points breakdown list based on the toggle.
+if per_game:
+    df["pts_breakdown"] = df[_breakdown_ppg_cols].values.tolist()
+    _rate_suffix = "PG"
+    _rate_label = "Per Game"
+else:
+    df["pts_breakdown"] = df[_breakdown_pp90_cols].values.tolist()
+    _rate_suffix = "P90"
+    _rate_label = "Per 90"
 
 # Select and rename columns for display (internal snake_case → readable headers).
+# Column sources switch between per-90 and per-game based on the toggle.
+_p_col = "ppg" if per_game else "p90"
+_xp_col = "xppg" if per_game else "xp90"
+_gs_col = "gspg" if per_game else "gs90"
+_a_col = "apg" if per_game else "a90"
+_gi_col = "gipg" if per_game else "gi90"
+_xg_col = "xgpg" if per_game else "xg90"
+_xa_col = "xapg" if per_game else "xa90"
+_xgi_col = "xgipg" if per_game else "xgi90"
+_xgc_col = "xgcpg" if per_game else "xgc90"
+
 display = df.filter(
     items=[
         "shirt",
         "pos",
         "player",
         "price",
+        "gp",
         "st",
         "mp",
         "mp_pct",
         "pts",
-        "p90",
-        "xp90",
-        "gs90",
-        "a90",
-        "gi90",
-        "xg90",
-        "xa90",
-        "xgi90",
+        _p_col,
+        _xp_col,
+        _gs_col,
+        _a_col,
+        _gi_col,
+        _xg_col,
+        _xa_col,
+        _xgi_col,
         "cs",
         "xgc",
-        "xgc90",
+        _xgc_col,
         "tsb",
-        "pp90_breakdown",
+        "pts_breakdown",
     ]
 ).rename(
     columns={
@@ -568,22 +614,23 @@ display = df.filter(
         "pos": "Pos",
         "player": "Player",
         "price": "£",
+        "gp": "GP",
         "st": "ST",
         "mp": "MP",
         "mp_pct": "MP%",
         "pts": "Pts",
-        "p90": "P90",
-        "pp90_breakdown": "PP90",
-        "xp90": "xP90",
-        "gs90": "GS90",
-        "a90": "A90",
-        "gi90": "GI90",
-        "xg90": "xG90",
-        "xa90": "xA90",
-        "xgi90": "xGI90",
+        _p_col: _rate_suffix,
+        "pts_breakdown": f"P{_rate_suffix}",
+        _xp_col: f"x{_rate_suffix}",
+        _gs_col: f"GS{_rate_suffix}",
+        _a_col: f"A{_rate_suffix}",
+        _gi_col: f"GI{_rate_suffix}",
+        _xg_col: f"xG{_rate_suffix}",
+        _xa_col: f"xA{_rate_suffix}",
+        _xgi_col: f"xGI{_rate_suffix}",
         "cs": "CS",
         "xgc": "xGC",
-        "xgc90": "xGC90",
+        _xgc_col: f"xGC{_rate_suffix}",
         "tsb": "TSB%",
     }
 )
@@ -597,10 +644,10 @@ event = st.dataframe(
         "Player": st.column_config.TextColumn("Player"),
         "£": st.column_config.NumberColumn(format="%.1f"),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
-        "P90": st.column_config.NumberColumn(format="%.1f"),
-        "PP90": st.column_config.BarChartColumn(
-            "PP90",
-            help="Points per 90 breakdown: Goals | Assists | Defensive (CS + GC ded + DC) | Bonus | Appearance",
+        _rate_suffix: st.column_config.NumberColumn(format="%.1f"),
+        f"P{_rate_suffix}": st.column_config.BarChartColumn(
+            f"P{_rate_suffix}",
+            help=f"Points {_rate_label.lower()} breakdown: Goals | Assists | Defensive (CS + GC ded + DC) | Bonus | Appearance",
             y_min=0,
         ),
         "MP%": st.column_config.NumberColumn(format="%.1f"),
@@ -612,4 +659,4 @@ event = st.dataframe(
 
 if event.selection.rows:
     selected_idx = event.selection.rows[0]
-    _show_player_detail(df.iloc[selected_idx])
+    _show_player_detail(df.iloc[selected_idx], per_game=per_game)

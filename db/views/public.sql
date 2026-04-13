@@ -283,12 +283,16 @@ SELECT
         + s.penalties_missed * -2
         -- Bonus (actual)
         + s.bonus
-        -- Defensive contribution: 2pts when raw DC count meets position threshold
-        + CASE
-            WHEN p.element_type IN (1, 2) AND s.defensive_contribution >= 10 THEN 2
-            WHEN p.element_type IN (3, 4) AND s.defensive_contribution >= 12 THEN 2
-            ELSE 0
-          END
+        -- Defensive contribution: fractional scaling up to cap of 2pts
+        -- GK/DEF threshold = 10, MID/FWD threshold = 12
+        + LEAST(
+            CASE p.element_type
+                WHEN 1 THEN s.defensive_contribution / 10.0
+                WHEN 2 THEN s.defensive_contribution / 10.0
+                ELSE s.defensive_contribution / 12.0
+            END * 2,
+            2
+          )
     , 2)                                    AS xpts
 FROM raw.player_gameweek_stats s
 JOIN raw.fixtures f ON f.id = s.fixture

@@ -3,9 +3,9 @@
 -- or last_n to select the N most recent finished gameweeks.
 -- include_current (default true) controls whether fixtures from an in-progress
 -- gameweek are included; last_n always counts only fully-finished gameweeks.
--- Returns: pos, team, team_code, player, price, st, mp, mp_pct, pts,
---          p90, gs90, a90, gi90, xg90, xa90, xgi90,
---          cs, xgc, xgc90, tsb, xp90.
+-- Returns: pos, team, team_code, player, price, gp, st, mp, mp_pct, pts,
+--          ppg, p90, xppg, xp90, gs90, a90, gi90, xg90, xa90, xgi90,
+--          cs, xgc, xgc90, tsb.
 -- Queries public.player_gameweek_stats so the xpts formula isn't duplicated.
 
 DROP FUNCTION IF EXISTS public.player_stats(int, int, int);
@@ -24,10 +24,12 @@ RETURNS TABLE (
     team_code int,
     player    text,
     price     numeric,
+    gp        bigint,
     st        bigint,
     mp        bigint,
     mp_pct    numeric,
     pts       bigint,
+    ppg       numeric,
     p90       numeric,
     gs90      numeric,
     a90       numeric,
@@ -39,6 +41,7 @@ RETURNS TABLE (
     xgc       numeric,
     xgc90     numeric,
     tsb       numeric,
+    xppg      numeric,
     xp90      numeric,
     goals_pp90      numeric,
     assists_pp90    numeric,
@@ -58,10 +61,12 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         t.code                                                                           AS team_code,
         p.web_name                                                                       AS player,
         p.now_cost / 10.0                                                                AS price,
+        COUNT(*)                                                                         AS gp,
         SUM(v.starts)                                                                    AS st,
         SUM(v.minutes)                                                                   AS mp,
         ROUND(SUM(v.minutes) * 100.0 / NULLIF(COUNT(*) * 90, 0), 1)                     AS mp_pct,
         SUM(v.total_points)                                                              AS pts,
+        ROUND(SUM(v.total_points) * 1.0 / COUNT(*), 1)                                  AS ppg,
         ROUND(SUM(v.total_points) * 90.0 / NULLIF(SUM(v.minutes), 0), 1)                AS p90,
         ROUND(SUM(v.goals_scored) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                AS gs90,
         ROUND(SUM(v.assists) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                     AS a90,
@@ -76,6 +81,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         ROUND(SUM(v.expected_goals_conceded) * 90.0
               / NULLIF(SUM(v.minutes), 0), 2)                                            AS xgc90,
         p.selected_by_percent::numeric                                                   AS tsb,
+        ROUND(SUM(v.xpts) * 1.0 / COUNT(*), 2)                                          AS xppg,
         ROUND(SUM(v.xpts) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                        AS xp90,
         -- PP90 breakdown columns
         ROUND(SUM(v.goals_scored)
