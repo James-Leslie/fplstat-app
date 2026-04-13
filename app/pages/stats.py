@@ -627,6 +627,9 @@ else:  # Total
     df["pts_breakdown"] = df[_breakdown_total_cols].values.tolist()
     _pts_fmt = "%d"
 
+# Sort by the active points column so row order updates when mode changes.
+df = df.sort_values(_pts_col, ascending=False).reset_index(drop=True)
+
 display = df.filter(
     items=[
         "shirt",
