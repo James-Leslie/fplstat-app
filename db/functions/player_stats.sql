@@ -64,12 +64,12 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         t.code                                                                           AS team_code,
         p.web_name                                                                       AS player,
         p.now_cost / 10.0                                                                AS price,
-        COUNT(*)                                                                         AS gp,
+        SUM(CASE WHEN v.minutes > 0 THEN 1 ELSE 0 END)                                  AS gp,
         SUM(v.starts)                                                                    AS st,
         SUM(v.minutes)                                                                   AS mp,
         ROUND(SUM(v.minutes) * 100.0 / NULLIF(COUNT(*) * 90, 0), 1)                     AS mp_pct,
         SUM(v.total_points)                                                              AS pts,
-        ROUND(SUM(v.total_points) * 1.0 / COUNT(*), 1)                                  AS ppg,
+        ROUND(SUM(v.total_points) * 1.0 / NULLIF(SUM(CASE WHEN v.minutes > 0 THEN 1 ELSE 0 END), 0), 1) AS ppg,
         ROUND(SUM(v.total_points) * 90.0 / NULLIF(SUM(v.minutes), 0), 1)                AS p90,
         SUM(v.goals_scored)                                                              AS gs,
         SUM(v.assists)                                                                   AS a,
@@ -87,7 +87,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         ROUND(SUM(v.expected_goals_conceded) * 90.0
               / NULLIF(SUM(v.minutes), 0), 2)                                            AS xgc90,
         p.selected_by_percent::numeric                                                   AS tsb,
-        ROUND(SUM(v.xpts) * 1.0 / COUNT(*), 2)                                          AS xppg,
+        ROUND(SUM(v.xpts) * 1.0 / NULLIF(SUM(CASE WHEN v.minutes > 0 THEN 1 ELSE 0 END), 0), 2) AS xppg,
         ROUND(SUM(v.xpts) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                        AS xp90,
         -- PP90 breakdown columns
         ROUND(SUM(v.goals_scored)

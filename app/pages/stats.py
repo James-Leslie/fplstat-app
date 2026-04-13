@@ -93,6 +93,7 @@ df["shirt"] = df["team_code"].apply(
 )
 
 # Compute per-game stat variants from per-90 values: ppg = pp90 * mp / (90 * gp)
+# gp counts only games with minutes > 0, so DNPs don't deflate per-game rates.
 _per90_to_pg_factor = df["mp"] / (90.0 * df["gp"])
 for col in ["gs90", "a90", "gi90", "xg90", "xa90", "xgi90", "xgc90"]:
     pg_col = col.replace("90", "pg")
