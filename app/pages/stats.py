@@ -308,7 +308,12 @@ _PP90_ORDER = [
 
 
 @st.dialog("Player Details", width="large")
-def _show_player_detail(player_row: pd.Series, view_mode: str = "Per 90") -> None:
+def _show_player_detail(
+    player_row: pd.Series,
+    view_mode: str = "Per 90",
+    last_n: int | None = None,
+    include_current: bool = True,
+) -> None:
     """Modal showing player header, key stats, per-GW history table + charts, and FDR strip."""
     # ── Header ──
     col_shirt, col_info = st.columns([1, 5])
@@ -365,6 +370,20 @@ def _show_player_detail(player_row: pd.Series, view_mode: str = "Per 90") -> Non
 
     # ── History ──
     hist = fetch_player_history(int(player_row["player_id"]))
+
+    # Mirror the gameweek filter applied to the main table. player_history always
+    # returns the full season, so we slice here to match the selected window.
+    if not hist.empty and last_n is not None:
+        gw_info = fetch_gameweek_info()
+        # Exclude current (in-progress) GW if the toggle is off
+        eligible_gws = sorted(
+            hist["gameweek_id"].unique(),
+            reverse=True,
+        )
+        if not include_current:
+            eligible_gws = [gw for gw in eligible_gws if gw < gw_info["next_gw"]]
+        selected_gws = set(eligible_gws[:last_n])
+        hist = hist[hist["gameweek_id"].isin(selected_gws)]
 
     if hist.empty:
         st.caption("No match history available.")
@@ -681,4 +700,9 @@ event = st.dataframe(
 
 if event.selection.rows:
     selected_idx = event.selection.rows[0]
-    _show_player_detail(df.iloc[selected_idx], view_mode=view_mode)
+    _show_player_detail(
+        df.iloc[selected_idx],
+        view_mode=view_mode,
+        last_n=last_n,
+        include_current=include_current,
+    )
