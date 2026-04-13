@@ -597,7 +597,10 @@ else:  # Total
     _pts_col, _xpts_col = "pts", "xpts_total"
     _gs_col, _a_col, _gi_col = "gs_total", "a_total", "gi_total"
     _xg_col, _xa_col, _xgi_col, _xgc_col = "xg_total", "xa_total", "xgi_total", "xgc"
-    df["pts_breakdown"] = df[_breakdown_total_cols].values.tolist()
+    # Single bar = total pts; breakdown proportions are identical across modes
+    # (all categories scale by the same factor) so a rate-based breakdown adds
+    # nothing here that Per Game doesn't already show.
+    df["pts_breakdown"] = df["pts"].apply(lambda x: [x])
     _pts_fmt = "%d"
 
 display = df.filter(
