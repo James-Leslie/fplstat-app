@@ -98,9 +98,10 @@ for col in ["gs90", "a90", "gi90", "xg90", "xa90", "xgi90", "xgc90"]:
     pg_col = col.replace("90", "pg")
     df[pg_col] = (df[col] * _per90_to_pg_factor).round(2)
 
-# Compute season-total stat variants by reversing the per-90 formula.
-# per90 * total_minutes / 90 recovers the raw season sum.
-for col in ["gs90", "a90", "gi90", "xg90", "xa90", "xgi90"]:
+# Season-total stat variants.
+# gs/a/gi are raw integer sums from the DB — use them directly.
+# xg/xa/xgi totals are recovered by reversing the per-90 formula.
+for col in ["xg90", "xa90", "xgi90"]:
     total_col = col.replace("90", "_total")
     df[total_col] = (df[col] * df["mp"] / 90.0).round(2)
 # xgc_total is already in the DB as xgc (SUM of expected_goals_conceded)
@@ -622,7 +623,7 @@ elif view_mode == "Per Game":
     _pts_fmt = "%.1f"
 else:  # Total
     _pts_col, _xpts_col = "pts", "xpts_total"
-    _gs_col, _a_col, _gi_col = "gs_total", "a_total", "gi_total"
+    _gs_col, _a_col, _gi_col = "gs", "a", "gi"
     _xg_col, _xa_col, _xgi_col, _xgc_col = "xg_total", "xa_total", "xgi_total", "xgc"
     df["pts_breakdown"] = df[_breakdown_total_cols].values.tolist()
     _pts_fmt = "%d"

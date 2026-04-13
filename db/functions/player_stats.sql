@@ -4,7 +4,7 @@
 -- include_current (default true) controls whether fixtures from an in-progress
 -- gameweek are included; last_n always counts only fully-finished gameweeks.
 -- Returns: pos, team, team_code, player, price, gp, st, mp, mp_pct, pts,
---          ppg, p90, xppg, xp90, gs90, a90, gi90, xg90, xa90, xgi90,
+--          ppg, p90, xppg, xp90, gs, a, gi, gs90, a90, gi90, xg90, xa90, xgi90,
 --          cs, xgc, xgc90, tsb.
 -- Queries public.player_gameweek_stats so the xpts formula isn't duplicated.
 
@@ -31,6 +31,9 @@ RETURNS TABLE (
     pts       bigint,
     ppg       numeric,
     p90       numeric,
+    gs        bigint,
+    a         bigint,
+    gi        bigint,
     gs90      numeric,
     a90       numeric,
     gi90      numeric,
@@ -68,6 +71,9 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         SUM(v.total_points)                                                              AS pts,
         ROUND(SUM(v.total_points) * 1.0 / COUNT(*), 1)                                  AS ppg,
         ROUND(SUM(v.total_points) * 90.0 / NULLIF(SUM(v.minutes), 0), 1)                AS p90,
+        SUM(v.goals_scored)                                                              AS gs,
+        SUM(v.assists)                                                                   AS a,
+        SUM(v.goals_scored) + SUM(v.assists)                                             AS gi,
         ROUND(SUM(v.goals_scored) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                AS gs90,
         ROUND(SUM(v.assists) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                     AS a90,
         ROUND((SUM(v.goals_scored) + SUM(v.assists)) * 90.0
