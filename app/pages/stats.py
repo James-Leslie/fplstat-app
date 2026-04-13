@@ -213,18 +213,26 @@ _CS_MULT = {"GK": 4, "DEF": 4, "MID": 1, "FWD": 0}
 
 
 def _build_pp90_breakdown(
-    hist: pd.DataFrame, pos: str, per_game: bool = False
+    hist: pd.DataFrame, pos: str, view_mode: str = "Per 90"
 ) -> pd.DataFrame:
     """Compute points broken down by scoring category from per-GW history.
 
-    When per_game is False, values are per-90-minutes; when True, per-game average.
+    view_mode controls the divisor:
+      "Total"    — raw season totals (divisor = 1)
+      "Per Game" — per-game average (divisor = number of games)
+      "Per 90"   — per-90-minutes rate (divisor = total_minutes / 90)
     """
     total_minutes = hist["minutes"].sum()
     num_games = len(hist)
     if total_minutes == 0 or num_games == 0:
         return pd.DataFrame()
 
-    divisor = num_games if per_game else (total_minutes / 90)
+    if view_mode == "Total":
+        divisor = 1
+    elif view_mode == "Per Game":
+        divisor = num_games
+    else:
+        divisor = total_minutes / 90
 
     # Goals
     goals_pts = (hist["goals_scored"] * _GOAL_MULT[pos]).sum()
@@ -300,7 +308,7 @@ _PP90_ORDER = [
 
 
 @st.dialog("Player Details", width="large")
-def _show_player_detail(player_row: pd.Series, per_game: bool = False) -> None:
+def _show_player_detail(player_row: pd.Series, view_mode: str = "Per 90") -> None:
     """Modal showing player header, key stats, per-GW history table + charts, and FDR strip."""
     # ── Header ──
     col_shirt, col_info = st.columns([1, 5])
@@ -364,10 +372,10 @@ def _show_player_detail(player_row: pd.Series, per_game: bool = False) -> None:
         hist = hist.reset_index(drop=True)
 
         # ── Points Breakdown chart ──
-        breakdown_df = _build_pp90_breakdown(hist, player_row["pos"], per_game)
+        breakdown_df = _build_pp90_breakdown(hist, player_row["pos"], view_mode)
         if not breakdown_df.empty:
-            rate_label = "Per Game" if per_game else "Per 90"
-            st.markdown(f"##### Points {rate_label} Breakdown")
+            _fmt = ".0f" if view_mode == "Total" else ".2f"
+            st.markdown(f"##### Points Breakdown ({view_mode})")
             present_order = [
                 c for c in _PP90_ORDER if c in breakdown_df["category"].values
             ]
@@ -375,7 +383,7 @@ def _show_player_detail(player_row: pd.Series, per_game: bool = False) -> None:
                 alt.Chart(breakdown_df)
                 .mark_bar(cornerRadiusEnd=4)
                 .encode(
-                    x=alt.X("value:Q", title=f"Points {rate_label.lower()}"),
+                    x=alt.X("value:Q", title=f"Points ({view_mode.lower()})"),
                     y=alt.Y("category:N", title=None, sort=present_order),
                     color=alt.Color(
                         "category:N",
@@ -387,7 +395,7 @@ def _show_player_detail(player_row: pd.Series, per_game: bool = False) -> None:
                     ),
                     tooltip=[
                         alt.Tooltip("category:N", title="Category"),
-                        alt.Tooltip("value:Q", title=rate_label, format=".2f"),
+                        alt.Tooltip("value:Q", title=view_mode, format=_fmt),
                     ],
                 )
             )
@@ -597,10 +605,7 @@ else:  # Total
     _pts_col, _xpts_col = "pts", "xpts_total"
     _gs_col, _a_col, _gi_col = "gs_total", "a_total", "gi_total"
     _xg_col, _xa_col, _xgi_col, _xgc_col = "xg_total", "xa_total", "xgi_total", "xgc"
-    # Single bar = total pts; breakdown proportions are identical across modes
-    # (all categories scale by the same factor) so a rate-based breakdown adds
-    # nothing here that Per Game doesn't already show.
-    df["pts_breakdown"] = df["pts"].apply(lambda x: [x])
+    df["pts_breakdown"] = df[_breakdown_total_cols].values.tolist()
     _pts_fmt = "%d"
 
 display = df.filter(
@@ -676,5 +681,4 @@ event = st.dataframe(
 
 if event.selection.rows:
     selected_idx = event.selection.rows[0]
-    # Modal breakdown uses per-game rate for Per Game mode, per-90 otherwise
-    _show_player_detail(df.iloc[selected_idx], per_game=(view_mode == "Per Game"))
+    _show_player_detail(df.iloc[selected_idx], view_mode=view_mode)
