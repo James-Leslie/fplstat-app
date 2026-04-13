@@ -11,14 +11,20 @@ See @README.md for project overview and @ARCHITECTURE.md for an outline of the s
 - **Python**: Use `uv` for ALL operations - see the **python-project-management** skill for details, or use `uv help`
 - **Streamlit**: Use `uv run streamlit run app/app.py` to launch the app for you or the user to view in the browser
 
+# Code style
+
+- **Comments**: Prefer well-commented code. Add a comment whenever the intent behind a block of code is not immediately obvious from reading it — explain *why*, not just *what*.
+- **YAGNI**: Don't build for hypothetical future requirements. Implement what is needed now; extend later when the need is real.
+- **DRY**: Avoid duplicating logic. Extract shared behaviour into a reusable function or module rather than copying code across files.
+- **Maintainability over cleverness**: Don't introduce unnecessary complexity. New features should follow existing conventions and patterns so that the codebase remains easy to pick up and extend. If a simpler approach achieves the same result, prefer it.
+
 # Workflow
 
 All work is to be done in the following loop:
 
 1. Plan: devise a detailed implementation plan to be signed off by the user
-2. Branch: create a feature branch to do implementation on
-3. Implement: make considered, surgical changes, keep the user involved as you go if they can do UX testing or provide general feedback
-4. Test: for any new functionality, add coverage in @/test
-5. Commit: make targeted commits with short messages, commits should be small and often
-6. Repeat steps 3-5 until all steps in the implementation plan are complete
-7. Merge: merge the feature branch into main, delete the branch and clean up all loose ends
+1. Implement: make considered, surgical changes, keep the user involved as you go if they can do UX testing or provide general feedback
+1. Test: for any new functionality, add coverage in @/test
+1. Commit: make targeted commits with short messages, commits should be small and often
+1. Repeat steps 3-5 until all steps in the implementation plan are complete
+1. Push: push all commits and ensure there are no unstaged changes before moving on

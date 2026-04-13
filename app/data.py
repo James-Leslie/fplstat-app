@@ -13,9 +13,11 @@ def get_client():
 # player_stats() aggregates per-player stats for the season or a recent GW window.
 # Cached for 5 minutes to avoid hammering the DB on every Streamlit interaction.
 @st.cache_data(ttl=300)
-def fetch_stats(last_n: int | None) -> pd.DataFrame:
+def fetch_stats(last_n: int | None, include_current: bool = True) -> pd.DataFrame:
     client = get_client()
-    params = {"last_n": last_n} if last_n is not None else {}
+    params: dict = {"include_current": include_current}
+    if last_n is not None:
+        params["last_n"] = last_n
     rows = client.rpc("player_stats", params).execute().data  # type: ignore[union-attr]
     return pd.DataFrame(rows)  # type: ignore[arg-type]
 
@@ -44,11 +46,19 @@ def fetch_fixtures() -> pd.DataFrame:
     rows = (
         client.from_("fixtures")
         .select(
-            "gameweek_id, team_h_id, team_a_id, team_h_difficulty, team_a_difficulty"
+            "gameweek_id, team_h_id, team_a_id, team_h_difficulty, team_a_difficulty, finished"
         )
         .execute()
         .data
     )
+    return pd.DataFrame(rows)  # type: ignore[arg-type]
+
+
+@st.cache_data(ttl=300)
+def fetch_player_history(player_id: int) -> pd.DataFrame:
+    """Per-gameweek stats for a single player (finished fixtures only)."""
+    client = get_client()
+    rows = client.rpc("player_history", {"p_player_id": player_id}).execute().data  # type: ignore[union-attr]
     return pd.DataFrame(rows)  # type: ignore[arg-type]
 
 
