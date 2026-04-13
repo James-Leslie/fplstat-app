@@ -225,7 +225,7 @@ def _build_pp90_breakdown(
       "Per 90"   — per-90-minutes rate (divisor = total_minutes / 90)
     """
     total_minutes = hist["minutes"].sum()
-    num_games = len(hist)
+    num_games = (hist["minutes"] > 0).sum()
     if total_minutes == 0 or num_games == 0:
         return pd.DataFrame()
 
