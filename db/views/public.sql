@@ -250,9 +250,6 @@ SELECT
     END                                     AS fdr,
     -- Expected points: full FPL scoring model using xStats where available,
     -- actual counts for non-xStat components (minutes, saves, cards, bonus, etc.)
-    -- Guard: if a player didn't play (minutes = 0), xpts is exactly 0.
-    -- Without this, DNP players with xGC=0 would get EXP(-0)=1 clean-sheet pts.
-    CASE WHEN s.minutes = 0 THEN 0 ELSE
     ROUND(
         -- Appearance points
         CASE WHEN s.minutes >= 60 THEN 2 WHEN s.minutes >= 1 THEN 1 ELSE 0 END
@@ -299,7 +296,7 @@ SELECT
             END * 2,
             2
           )
-    , 2) END                                AS xpts
+    , 2)                                    AS xpts
 FROM raw.player_gameweek_stats s
 JOIN raw.fixtures f ON f.id = s.fixture
 JOIN raw.players  p ON p.id = s.element;
