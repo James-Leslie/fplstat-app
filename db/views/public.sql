@@ -250,6 +250,9 @@ SELECT
     END                                     AS fdr,
     -- Expected points: full FPL scoring model using xStats where available,
     -- actual counts for non-xStat components (minutes, saves, cards, bonus, etc.)
+    -- Guard: if a player didn't play (minutes = 0), xpts is exactly 0.
+    -- Without this, DNP players with xGC=0 would get EXP(-0)=1 clean-sheet pts.
+    CASE WHEN s.minutes = 0 THEN 0 ELSE
     ROUND(
         -- Appearance points
         CASE WHEN s.minutes >= 60 THEN 2 WHEN s.minutes >= 1 THEN 1 ELSE 0 END
@@ -260,12 +263,15 @@ SELECT
         -- Assist points (xA proxy)
         + COALESCE(s.expected_assists::numeric, 0) * 3
         -- Clean sheet probability via Poisson: P(xGC=0) = e^(-xGC)
-        + CASE p.element_type
-            WHEN 1 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 4
-            WHEN 2 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 4
-            WHEN 3 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 1
-            ELSE 0
-          END
+        -- Only players who played >= 60 minutes are eligible for CS points
+        + CASE WHEN s.minutes >= 60 THEN
+            CASE p.element_type
+              WHEN 1 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 4
+              WHEN 2 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 4
+              WHEN 3 THEN EXP(-COALESCE(s.expected_goals_conceded::numeric, 0)) * 1
+              ELSE 0
+            END
+          ELSE 0 END
         -- Goals conceded deduction: -1 per 2 xGC (GK/DEF only)
         + CASE
             WHEN p.element_type IN (1, 2)
@@ -293,7 +299,7 @@ SELECT
             END * 2,
             2
           )
-    , 2)                                    AS xpts
+    , 2) END                                AS xpts
 FROM raw.player_gameweek_stats s
 JOIN raw.fixtures f ON f.id = s.fixture
 JOIN raw.players  p ON p.id = s.element;
