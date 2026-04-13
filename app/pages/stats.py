@@ -121,6 +121,11 @@ for col in _breakdown_pp90_cols:
 
 _breakdown_ppg_cols = [c.replace("pp90", "ppg") for c in _breakdown_pp90_cols]
 
+# Compute total-points breakdown: per-game rate × games played = season sum
+_breakdown_total_cols = [c.replace("ppg", "pts_total") for c in _breakdown_ppg_cols]
+for ppg_col, total_col in zip(_breakdown_ppg_cols, _breakdown_total_cols):
+    df[total_col] = (df[ppg_col] * df["gp"]).round(2)
+
 # Build breakdown list for the BarChartColumn (populated after view mode selector, below).
 
 # ── Player detail modal ──────────────────────────────────────────────────────
@@ -582,22 +587,18 @@ if view_mode == "Per 90":
     _xg_col, _xa_col, _xgi_col, _xgc_col = "xg90", "xa90", "xgi90", "xgc90"
     df["pts_breakdown"] = df[_breakdown_pp90_cols].values.tolist()
     _pts_fmt = "%.1f"
-    _bkdn_help = "Points per-90 breakdown: Goals | Assists | Defensive (CS + GC ded + DC) | Bonus | Appearance"
 elif view_mode == "Per Game":
     _pts_col, _xpts_col = "ppg", "xppg"
     _gs_col, _a_col, _gi_col = "gspg", "apg", "gipg"
     _xg_col, _xa_col, _xgi_col, _xgc_col = "xgpg", "xapg", "xgipg", "xgcpg"
     df["pts_breakdown"] = df[_breakdown_ppg_cols].values.tolist()
     _pts_fmt = "%.1f"
-    _bkdn_help = "Points per-game breakdown: Goals | Assists | Defensive (CS + GC ded + DC) | Bonus | Appearance"
 else:  # Total
     _pts_col, _xpts_col = "pts", "xpts_total"
     _gs_col, _a_col, _gi_col = "gs_total", "a_total", "gi_total"
     _xg_col, _xa_col, _xgi_col, _xgc_col = "xg_total", "xa_total", "xgi_total", "xgc"
-    # Use per-game breakdown for the visual — most readable rate for totals context
-    df["pts_breakdown"] = df[_breakdown_ppg_cols].values.tolist()
+    df["pts_breakdown"] = df[_breakdown_total_cols].values.tolist()
     _pts_fmt = "%d"
-    _bkdn_help = "Points per-game breakdown: Goals | Assists | Defensive (CS + GC ded + DC) | Bonus | Appearance"
 
 display = df.filter(
     items=[
@@ -611,7 +612,6 @@ display = df.filter(
         "mp_pct",
         _pts_col,
         _xpts_col,
-        "pts_breakdown",
         _gs_col,
         _a_col,
         _gi_col,
@@ -621,6 +621,7 @@ display = df.filter(
         "cs",
         _xgc_col,
         "tsb",
+        "pts_breakdown",
     ]
 ).rename(
     columns={
@@ -634,7 +635,6 @@ display = df.filter(
         "mp_pct": "MP%",
         _pts_col: "Pts",
         _xpts_col: "xPts",
-        "pts_breakdown": "Bkdn",
         _gs_col: "GS",
         _a_col: "A",
         _gi_col: "GI",
@@ -644,6 +644,7 @@ display = df.filter(
         "cs": "CS",
         _xgc_col: "xGC",
         "tsb": "TSB%",
+        "pts_breakdown": "Pts Split",
     }
 )
 
@@ -657,9 +658,13 @@ event = st.dataframe(
         "£": st.column_config.NumberColumn(format="%.1f"),
         "Pts": st.column_config.NumberColumn(format=_pts_fmt),
         "xPts": st.column_config.NumberColumn(format="%.2f"),
-        "Bkdn": st.column_config.BarChartColumn("Bkdn", help=_bkdn_help, y_min=0),
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
         "MP%": st.column_config.NumberColumn(format="%.1f"),
+        "Pts Split": st.column_config.BarChartColumn(
+            "Pts Split",
+            help="Goals · Assists · Defensive · Bonus · Appearance",
+            y_min=0,
+        ),
     },
     on_select="rerun",
     selection_mode="single-row",
