@@ -87,7 +87,10 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
                 WHEN 1 THEN 4 WHEN 2 THEN 4 WHEN 3 THEN 1 ELSE 0 END)
             + SUM(CASE WHEN p.element_type IN (1, 2)
                   THEN FLOOR(v.goals_conceded / 2.0) * -1 ELSE 0 END)
-            + SUM(v.defensive_contribution)
+            + SUM(CASE
+                  WHEN p.element_type IN (1, 2) AND v.defensive_contribution >= 10 THEN 2
+                  WHEN p.element_type IN (3, 4) AND v.defensive_contribution >= 12 THEN 2
+                  ELSE 0 END)
         ) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                                        AS defensive_pp90,
         ROUND(SUM(v.bonus) * 90.0 / NULLIF(SUM(v.minutes), 0), 2)                       AS bonus_pp90,
         ROUND(SUM(CASE WHEN v.minutes >= 60 THEN 2 WHEN v.minutes >= 1 THEN 1 ELSE 0 END)

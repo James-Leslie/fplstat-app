@@ -94,7 +94,13 @@ df["shirt"] = df["team_code"].apply(
 
 # Build PP90 breakdown list for the BarChartColumn.
 # Order: Goals / Assists / Defensive / Bonus / Appearance
-_breakdown_cols = ["goals_pp90", "assists_pp90", "defensive_pp90", "bonus_pp90", "appearance_pp90"]
+_breakdown_cols = [
+    "goals_pp90",
+    "assists_pp90",
+    "defensive_pp90",
+    "bonus_pp90",
+    "appearance_pp90",
+]
 df["pp90_breakdown"] = df[_breakdown_cols].values.tolist()
 
 # ── Player detail modal ──────────────────────────────────────────────────────
@@ -137,17 +143,23 @@ def _build_fdr_strip(team_short_name: str, num_gws: int = 8) -> list[dict]:
     team_fx["opponent"] = team_fx["opponent_id"].map(team_id_map)
     team_fx["fragment"] = team_fx["opponent"] + " (" + team_fx["venue"] + ")"
 
-    grouped = team_fx.groupby("gameweek_id").agg(
-        opponents=("fragment", " ".join),
-        fdr=("fdr", "max"),
-    ).reset_index()
+    grouped = (
+        team_fx.groupby("gameweek_id")
+        .agg(
+            opponents=("fragment", " ".join),
+            fdr=("fdr", "max"),
+        )
+        .reset_index()
+    )
 
     gw_data = grouped.set_index("gameweek_id")
     result = []
     for gw in range(next_gw, end_gw + 1):
         if gw in gw_data.index:
             row = gw_data.loc[gw]
-            result.append({"gw": gw, "opponents": row["opponents"], "fdr": int(row["fdr"])})
+            result.append(
+                {"gw": gw, "opponents": row["opponents"], "fdr": int(row["fdr"])}
+            )
         else:
             result.append({"gw": gw, "opponents": "", "fdr": 0})
     return result
@@ -195,16 +207,18 @@ def _build_pp90_breakdown(hist: pd.DataFrame, pos: str) -> pd.DataFrame:
     if pos in ("GK", "DEF"):
         # Floor applied per gameweek, then summed
         gc_ded = (hist["goals_conceded"] // 2 * -1).sum()
-    dc_pts = hist["defensive_contribution"].sum()
+    # DC awards 2pts when raw count meets the position threshold (10 DEF/GK, 12 MID/FWD)
+    dc_threshold = 10 if pos in ("GK", "DEF") else 12
+    dc_pts = (hist["defensive_contribution"] >= dc_threshold).sum() * 2
     defensive_pts = cs_pts + gc_ded + dc_pts
 
     # Bonus
     bonus_pts = hist["bonus"].sum()
 
     # Appearance: 2 if ≥60 min, 1 if ≥1 min
-    appearance_pts = hist["minutes"].apply(
-        lambda m: 2 if m >= 60 else (1 if m >= 1 else 0)
-    ).sum()
+    appearance_pts = (
+        hist["minutes"].apply(lambda m: 2 if m >= 60 else (1 if m >= 1 else 0)).sum()
+    )
 
     # Saves (GK only)
     saves_pts = (hist["saves"] // 3).sum() if pos == "GK" else None
@@ -243,7 +257,15 @@ _PP90_COLOURS = {
     "Saves": "#1abc9c",
     "Deductions": "#e74c3c",
 }
-_PP90_ORDER = ["Goals", "Assists", "Defensive", "Bonus", "Appearance", "Saves", "Deductions"]
+_PP90_ORDER = [
+    "Goals",
+    "Assists",
+    "Defensive",
+    "Bonus",
+    "Appearance",
+    "Saves",
+    "Deductions",
+]
 
 
 @st.dialog("Player Details", width="large")
@@ -290,7 +312,7 @@ def _show_player_detail(player_row: pd.Series) -> None:
                 f'<div style="display:inline-block;text-align:center;margin:2px;">'
                 f'<div style="font-size:0.7em;color:#666;">GW{gw}</div>'
                 f'<div style="background:{bg};color:{fg};padding:6px 10px;'
-                f'border-radius:6px;font-size:0.85em;font-weight:600;'
+                f"border-radius:6px;font-size:0.85em;font-weight:600;"
                 f'min-width:70px;">{opponents}</div>'
                 f"</div>"
             )
@@ -314,7 +336,9 @@ def _show_player_detail(player_row: pd.Series) -> None:
         breakdown_df = _build_pp90_breakdown(hist, player_row["pos"])
         if not breakdown_df.empty:
             st.markdown("##### Points per 90 Breakdown")
-            present_order = [c for c in _PP90_ORDER if c in breakdown_df["category"].values]
+            present_order = [
+                c for c in _PP90_ORDER if c in breakdown_df["category"].values
+            ]
             chart = (
                 alt.Chart(breakdown_df)
                 .mark_bar(cornerRadiusEnd=4)
@@ -338,51 +362,88 @@ def _show_player_detail(player_row: pd.Series) -> None:
             st.altair_chart(chart, use_container_width=True)
 
         # Derived columns
-        hist["Opponent"] = hist["opponent"] + " (" + hist["was_home"].map({True: "H", False: "A"}) + ")"
+        hist["Opponent"] = (
+            hist["opponent"]
+            + " ("
+            + hist["was_home"].map({True: "H", False: "A"})
+            + ")"
+        )
         hist["Score"] = hist.apply(
-            lambda r: f"{int(r['home_score'])}-{int(r['away_score'])}"
-            if pd.notna(r["home_score"]) else "-",
+            lambda r: (
+                f"{int(r['home_score'])}-{int(r['away_score'])}"
+                if pd.notna(r["home_score"])
+                else "-"
+            ),
             axis=1,
         )
         outcomes = hist.apply(
-            lambda r: _outcome(r["was_home"], int(r["home_score"]), int(r["away_score"]))
-            if pd.notna(r["home_score"]) else "?",
+            lambda r: (
+                _outcome(r["was_home"], int(r["home_score"]), int(r["away_score"]))
+                if pd.notna(r["home_score"])
+                else "?"
+            ),
             axis=1,
         )
 
-        display_hist = hist.rename(columns={
-            "gameweek_id": "GW",
-            "goals_scored": "GS",
-            "assists": "A",
-            "cs": "CS",
-            "goals_conceded": "GC",
-            "own_goals": "OG",
-            "penalties_saved": "PS",
-            "penalties_missed": "PM",
-            "yellow_cards": "YC",
-            "red_cards": "RC",
-            "saves": "S",
-            "bonus": "B",
-            "bps": "BPS",
-            "pts": "Pts",
-            "starts": "ST",
-            "minutes": "MP",
-            "xg": "xG",
-            "xa": "xA",
-            "xgi": "xGI",
-            "xgc": "xGC",
-            "influence": "I",
-            "creativity": "C",
-            "threat": "T",
-            "ict_index": "ICT",
-            "xpts": "xPts",
-        })[[
-            "GW", "Opponent", "Score", "Pts", "xPts", "ST", "MP",
-            "GS", "A", "xG", "xA", "xGI",
-            "CS", "GC", "xGC",
-            "OG", "PS", "PM", "YC", "RC", "S", "B", "BPS",
-            "I", "C", "T", "ICT",
-        ]]
+        display_hist = hist.rename(
+            columns={
+                "gameweek_id": "GW",
+                "goals_scored": "GS",
+                "assists": "A",
+                "cs": "CS",
+                "goals_conceded": "GC",
+                "own_goals": "OG",
+                "penalties_saved": "PS",
+                "penalties_missed": "PM",
+                "yellow_cards": "YC",
+                "red_cards": "RC",
+                "saves": "S",
+                "bonus": "B",
+                "bps": "BPS",
+                "pts": "Pts",
+                "starts": "ST",
+                "minutes": "MP",
+                "xg": "xG",
+                "xa": "xA",
+                "xgi": "xGI",
+                "xgc": "xGC",
+                "influence": "I",
+                "creativity": "C",
+                "threat": "T",
+                "ict_index": "ICT",
+                "xpts": "xPts",
+            }
+        )[
+            [
+                "GW",
+                "Opponent",
+                "Score",
+                "Pts",
+                "xPts",
+                "ST",
+                "MP",
+                "GS",
+                "A",
+                "xG",
+                "xA",
+                "xGI",
+                "CS",
+                "GC",
+                "xGC",
+                "OG",
+                "PS",
+                "PM",
+                "YC",
+                "RC",
+                "S",
+                "B",
+                "BPS",
+                "I",
+                "C",
+                "T",
+                "ICT",
+            ]
+        ]
 
         score_col_idx = list(display_hist.columns).index("Score")
 
@@ -399,14 +460,14 @@ def _show_player_detail(player_row: pd.Series) -> None:
             height=350,
             column_config={
                 "xPts": st.column_config.NumberColumn(format="%.2f"),
-                "xG":   st.column_config.NumberColumn(format="%.2f"),
-                "xA":   st.column_config.NumberColumn(format="%.2f"),
-                "xGI":  st.column_config.NumberColumn(format="%.2f"),
-                "xGC":  st.column_config.NumberColumn(format="%.2f"),
-                "I":    st.column_config.NumberColumn(format="%.1f"),
-                "C":    st.column_config.NumberColumn(format="%.1f"),
-                "T":    st.column_config.NumberColumn(format="%.1f"),
-                "ICT":  st.column_config.NumberColumn(format="%.1f"),
+                "xG": st.column_config.NumberColumn(format="%.2f"),
+                "xA": st.column_config.NumberColumn(format="%.2f"),
+                "xGI": st.column_config.NumberColumn(format="%.2f"),
+                "xGC": st.column_config.NumberColumn(format="%.2f"),
+                "I": st.column_config.NumberColumn(format="%.1f"),
+                "C": st.column_config.NumberColumn(format="%.1f"),
+                "T": st.column_config.NumberColumn(format="%.1f"),
+                "ICT": st.column_config.NumberColumn(format="%.1f"),
             },
         )
 
@@ -488,7 +549,6 @@ display = df.filter(
         "mp_pct",
         "pts",
         "p90",
-        "pp90_breakdown",
         "xp90",
         "gs90",
         "a90",
@@ -500,6 +560,7 @@ display = df.filter(
         "xgc",
         "xgc90",
         "tsb",
+        "pp90_breakdown",
     ]
 ).rename(
     columns={
@@ -538,8 +599,8 @@ event = st.dataframe(
         "TSB%": st.column_config.NumberColumn(format="%.1f"),
         "P90": st.column_config.NumberColumn(format="%.1f"),
         "PP90": st.column_config.BarChartColumn(
-            "PP90 Breakdown",
-            help="Goals / Assists / Defensive / Bonus / Appearance",
+            "PP90",
+            help="Points per 90 breakdown: Goals | Assists | Defensive (CS + GC ded + DC) | Bonus | Appearance",
             y_min=0,
         ),
         "MP%": st.column_config.NumberColumn(format="%.1f"),

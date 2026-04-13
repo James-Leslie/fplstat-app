@@ -283,8 +283,12 @@ SELECT
         + s.penalties_missed * -2
         -- Bonus (actual)
         + s.bonus
-        -- Defensive contribution (actual)
-        + s.defensive_contribution
+        -- Defensive contribution: 2pts when raw DC count meets position threshold
+        + CASE
+            WHEN p.element_type IN (1, 2) AND s.defensive_contribution >= 10 THEN 2
+            WHEN p.element_type IN (3, 4) AND s.defensive_contribution >= 12 THEN 2
+            ELSE 0
+          END
     , 2)                                    AS xpts
 FROM raw.player_gameweek_stats s
 JOIN raw.fixtures f ON f.id = s.fixture
