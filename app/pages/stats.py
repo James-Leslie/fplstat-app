@@ -420,7 +420,7 @@ def _show_player_detail(
                     ],
                 )
             )
-            st.altair_chart(chart, use_container_width=True)
+            st.altair_chart(chart, width='stretch')
 
         # Derived columns
         hist["Opponent"] = (
@@ -563,7 +563,7 @@ def _show_player_detail(
             )
             .properties(title="GI − xGI delta  (positive = overperforming)")
         )
-        st.altair_chart(bar, use_container_width=True)
+        st.altair_chart(bar, width='stretch')
 
         # Cumulative GI vs xGI line chart
         cum_melted = chart_df.melt(
@@ -590,7 +590,7 @@ def _show_player_detail(
             )
             .properties(title="Cumulative GI and xGI")
         )
-        st.altair_chart(line, use_container_width=True)
+        st.altair_chart(line, width='stretch')
 
 
 # ── Table ─────────────────────────────────────────────────────────────────────
