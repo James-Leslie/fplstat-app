@@ -17,7 +17,6 @@ import json
 import os
 from pathlib import Path
 
-import pytest
 
 from fplstat.fpl_client import (
     fetch_bootstrap,
@@ -56,10 +55,7 @@ def _check_field_set(rows: list[dict], snapshot_path: Path, label: str) -> None:
     if update_mode:
         snapshot_path.parent.mkdir(parents=True, exist_ok=True)
         snapshot_path.write_text(json.dumps(sorted(actual), indent=2) + "\n")
-        pytest.skip(
-            f"Wrote snapshot {snapshot_path} ({len(actual)} fields). "
-            f"Commit it and re-run without {_UPDATE_ENV}."
-        )
+        return
 
     if not snapshot_path.exists():
         raise AssertionError(
@@ -99,10 +95,14 @@ def test_bootstrap_and_fixtures_match_schema():
     """bootstrap-static (teams, events, elements) and fixtures parse cleanly."""
     bootstrap = fetch_bootstrap()
     _parse(Team, bootstrap["teams"], "teams")
-    _check_field_set(bootstrap["teams"], SCHEMAS / "bootstrap_teams.json", "bootstrap.teams")
+    _check_field_set(
+        bootstrap["teams"], SCHEMAS / "bootstrap_teams.json", "bootstrap.teams"
+    )
 
     _parse(Gameweek, bootstrap["events"], "gameweeks")
-    _check_field_set(bootstrap["events"], SCHEMAS / "bootstrap_events.json", "bootstrap.events")
+    _check_field_set(
+        bootstrap["events"], SCHEMAS / "bootstrap_events.json", "bootstrap.events"
+    )
 
     _parse(Player, bootstrap["elements"], "players")
     _check_field_set(

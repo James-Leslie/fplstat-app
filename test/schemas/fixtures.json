@@ -1,0 +1,19 @@
+[
+  "code",
+  "event",
+  "finished",
+  "finished_provisional",
+  "id",
+  "kickoff_time",
+  "minutes",
+  "provisional_start_time",
+  "pulse_id",
+  "started",
+  "stats",
+  "team_a",
+  "team_a_difficulty",
+  "team_a_score",
+  "team_h",
+  "team_h_difficulty",
+  "team_h_score"
+]
