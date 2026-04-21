@@ -3,7 +3,6 @@ import math
 import altair as alt
 import pandas as pd
 import streamlit as st
-
 from data import (
     fetch_fixtures,
     fetch_gameweek_info,
@@ -32,7 +31,7 @@ with col1:
         "Last 5 GWs": 5,
         "Last 8 GWs": 8,
     }
-    last_n_label = st.selectbox("Gameweeks", list(last_n_options.keys()), index=0)
+    last_n_label = st.selectbox("Gameweeks", list(last_n_options.keys()), index=4)
     last_n = last_n_options[last_n_label]
     include_current = st.toggle("Include current GW", value=True)
 
@@ -420,7 +419,7 @@ def _show_player_detail(
                     ],
                 )
             )
-            st.altair_chart(chart, width='stretch')
+            st.altair_chart(chart, width="stretch")
 
         # Derived columns
         hist["Opponent"] = (
@@ -563,7 +562,7 @@ def _show_player_detail(
             )
             .properties(title="GI − xGI delta  (positive = overperforming)")
         )
-        st.altair_chart(bar, width='stretch')
+        st.altair_chart(bar, width="stretch")
 
         # Cumulative GI vs xGI line chart
         cum_melted = chart_df.melt(
@@ -590,7 +589,7 @@ def _show_player_detail(
             )
             .properties(title="Cumulative GI and xGI")
         )
-        st.altair_chart(line, width='stretch')
+        st.altair_chart(line, width="stretch")
 
 
 # ── Table ─────────────────────────────────────────────────────────────────────
@@ -605,7 +604,7 @@ with _pill_col:
     view_mode = st.segmented_control(
         "View",
         ["Total", "Per Game", "Per 90"],
-        default="Total",
+        default="Per Game",
         label_visibility="collapsed",
     )
 
