@@ -1,0 +1,23 @@
+[
+  "code",
+  "draw",
+  "form",
+  "id",
+  "loss",
+  "name",
+  "played",
+  "points",
+  "position",
+  "pulse_id",
+  "short_name",
+  "strength",
+  "strength_attack_away",
+  "strength_attack_home",
+  "strength_defence_away",
+  "strength_defence_home",
+  "strength_overall_away",
+  "strength_overall_home",
+  "team_division",
+  "unavailable",
+  "win"
+]
