@@ -1,5 +1,11 @@
 CREATE SCHEMA IF NOT EXISTS raw;
 
+CREATE TABLE raw.etl_runs (
+    id          serial      PRIMARY KEY,
+    started_at  timestamptz NOT NULL DEFAULT now(),
+    finished_at timestamptz
+);
+
 -- Raw tables store FPL API data as-fetched.
 -- All fields included, original API names preserved, no transformations.
 -- Renaming and enrichment lives in public.* views.

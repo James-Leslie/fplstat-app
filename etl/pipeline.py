@@ -3,7 +3,9 @@ import time
 from dotenv import load_dotenv
 
 from fplstat.db import (
+    complete_etl_run,
     get_client,
+    insert_etl_run,
     upsert_fixtures,
     upsert_gameweeks,
     upsert_player_gameweek_stats,
@@ -63,6 +65,8 @@ def run() -> None:
     client = get_client()
     _done(t)
 
+    run_id = insert_etl_run(client)
+
     t = _step(f"Upserting {len(teams_df)} teams")
     upsert_teams(client, teams_df)
     _done(t)
@@ -82,6 +86,8 @@ def run() -> None:
     t = _step(f"Upserting {len(stats_df)} player_gameweek_stats rows")
     upsert_player_gameweek_stats(client, stats_df)
     _done(t)
+
+    complete_etl_run(client, run_id)
 
     print(f"=== Done in {time.monotonic() - pipeline_start:.1f}s ===")
 

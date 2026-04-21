@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 
 import polars as pl
 from supabase import Client, create_client
@@ -42,3 +43,16 @@ def upsert_fixtures(client: Client, df: pl.DataFrame) -> None:
 
 def upsert_player_gameweek_stats(client: Client, df: pl.DataFrame) -> None:
     _upsert(client, "player_gameweek_stats", df, "element,fixture")
+
+
+def insert_etl_run(client: Client) -> int:
+    """Insert a new ETL run row and return its id."""
+    row = client.schema("raw").table("etl_runs").insert({}).execute().data[0]
+    return row["id"]
+
+
+def complete_etl_run(client: Client, run_id: int) -> None:
+    """Mark an ETL run as finished."""
+    client.schema("raw").table("etl_runs").update(
+        {"finished_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", run_id).execute()

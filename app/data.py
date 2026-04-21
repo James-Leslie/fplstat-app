@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
@@ -70,3 +71,22 @@ def fetch_gameweek_info() -> dict:
     ids = [r["id"] for r in rows]  # type: ignore[index]
     next_gw = next((r["id"] for r in rows if r["is_next"]), max(ids))  # type: ignore[index]
     return {"min_gw": min(ids), "max_gw": max(ids), "next_gw": next_gw}
+
+
+@st.cache_data(ttl=300)
+def fetch_last_updated() -> datetime | None:
+    """Return the timestamp of the most recent successful ETL run, or None."""
+    client = get_client()
+    rows = (
+        client.schema("raw")
+        .table("etl_runs")
+        .select("finished_at")
+        .not_.is_("finished_at", "null")
+        .order("finished_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if rows:
+        return datetime.fromisoformat(rows[0]["finished_at"])
+    return None
