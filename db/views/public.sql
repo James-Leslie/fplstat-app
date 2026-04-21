@@ -300,3 +300,10 @@ SELECT
 FROM raw.player_gameweek_stats s
 JOIN raw.fixtures f ON f.id = s.fixture
 JOIN raw.players  p ON p.id = s.element;
+
+CREATE VIEW public.etl_last_updated AS
+SELECT finished_at
+FROM raw.etl_runs
+WHERE finished_at IS NOT NULL
+ORDER BY finished_at DESC
+LIMIT 1;

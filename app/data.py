@@ -77,16 +77,7 @@ def fetch_gameweek_info() -> dict:
 def fetch_last_updated() -> datetime | None:
     """Return the timestamp of the most recent successful ETL run, or None."""
     client = get_client()
-    rows = (
-        client.schema("raw")
-        .table("etl_runs")
-        .select("finished_at")
-        .not_.is_("finished_at", "null")
-        .order("finished_at", desc=True)
-        .limit(1)
-        .execute()
-        .data
-    )
+    rows = client.from_("etl_last_updated").select("finished_at").execute().data
     if rows:
         return datetime.fromisoformat(rows[0]["finished_at"])
     return None
