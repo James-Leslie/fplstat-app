@@ -1,0 +1,9 @@
+[tools]
+python = "3.13"
+node = "22"
+pnpm = "10"
+
+[settings.python]
+# Let mise create/source the uv-managed .venv automatically when entering the
+# project directory, keeping uv as the single source of truth for Python deps.
+uv_venv_auto = "create|source"
