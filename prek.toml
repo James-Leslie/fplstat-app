@@ -33,3 +33,14 @@ additional_dependencies = [
   "mdformat-frontmatter",
   "mdformat-admon",
 ]
+
+# Lint and format-check the SvelteKit app via its own pnpm scripts so package.json
+# stays the single source of truth for JS tooling versions. Runs only when files
+# under web/ are staged. Requires `mise install` to put pnpm on PATH.
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "web-prettier", name = "prettier (web)", entry = "pnpm --dir web exec prettier --check .", language = "system", pass_filenames = false, files = "^web/" },
+  { id = "web-eslint", name = "eslint (web)", entry = "pnpm --dir web exec eslint .", language = "system", pass_filenames = false, files = "^web/" },
+  { id = "web-svelte-check", name = "svelte-check (web)", entry = "pnpm --dir web run check", language = "system", pass_filenames = false, files = "^web/" },
+]
