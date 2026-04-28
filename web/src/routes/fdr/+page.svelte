@@ -93,12 +93,14 @@
 		}
 
 		// Sort by ascending average FDR (easiest schedules at top). Teams with no
-		// fixtures in the window (null avg) sort to the bottom.
+		// fixtures in the window (null avg) sort to the bottom. Ties break
+		// alphabetically by team — matches the Streamlit version, which inherits
+		// alphabetical order from pandas groupby.
 		rows.sort((a, b) => {
-			if (a.avgFdr === null && b.avgFdr === null) return 0;
-			if (a.avgFdr === null) return 1;
-			if (b.avgFdr === null) return -1;
-			return a.avgFdr - b.avgFdr;
+			const av = a.avgFdr ?? Infinity;
+			const bv = b.avgFdr ?? Infinity;
+			if (av !== bv) return av - bv;
+			return a.team.localeCompare(b.team);
 		});
 
 		return { rows, gws };
@@ -162,76 +164,116 @@
 
 <style>
 	section {
-		max-width: 1200px;
+		max-width: 1280px;
 		margin: 0 auto;
-		padding: 1rem;
+		padding: 1.25rem 1rem 2rem;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+		color: #1f2937;
 	}
 
 	h2 {
 		margin: 0 0 0.25rem;
+		font-size: 1.5rem;
 	}
 
 	.caption {
-		color: #666;
+		color: #6b7280;
 		margin: 0 0 1rem;
-		font-size: 0.9rem;
+		font-size: 0.85rem;
 	}
 
 	.filters {
 		display: flex;
-		gap: 1rem;
-		margin-bottom: 1rem;
+		gap: 0.75rem;
+		margin-bottom: 0.75rem;
+		align-items: flex-end;
 	}
 
 	.filters label {
 		display: flex;
 		flex-direction: column;
-		font-size: 0.85rem;
-		color: #444;
+		gap: 0.2rem;
+		font-size: 0.75rem;
+		color: #6b7280;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
 	}
 
 	.filters input {
-		width: 6rem;
-		padding: 0.25rem 0.5rem;
-		font-size: 1rem;
+		width: 5rem;
+		padding: 0.35rem 0.5rem;
+		font-size: 0.9rem;
+		border: 1px solid #d1d5db;
+		border-radius: 6px;
+		background: #fff;
+		color: #111827;
+	}
+
+	.filters input:focus-visible {
+		outline: 2px solid #2563eb;
+		outline-offset: 1px;
+		border-color: transparent;
 	}
 
 	.info {
 		padding: 0.75rem 1rem;
 		background: #f3f4f6;
-		border-radius: 4px;
-		color: #444;
+		border-radius: 6px;
+		color: #4b5563;
 	}
 
 	.table-wrap {
 		overflow-x: auto;
+		border: 1px solid #e5e7eb;
+		border-radius: 8px;
+		background: #fff;
 	}
 
 	table {
-		border-collapse: collapse;
+		border-collapse: separate;
+		border-spacing: 0;
 		width: 100%;
-		font-size: 0.875rem;
+		font-size: 0.8125rem;
+		font-variant-numeric: tabular-nums;
 	}
 
 	th,
 	td {
-		padding: 0.5rem 0.75rem;
-		border: 1px solid #e5e7eb;
-		text-align: center;
+		padding: 0.4rem 0.625rem;
+		text-align: left;
 		white-space: nowrap;
+		border-bottom: 1px solid #f1f5f9;
+	}
+
+	tbody tr:last-child th,
+	tbody tr:last-child td {
+		border-bottom: none;
 	}
 
 	thead th {
 		background: #f9fafb;
 		font-weight: 600;
+		color: #6b7280;
+		text-transform: uppercase;
+		font-size: 0.7rem;
+		letter-spacing: 0.05em;
+		border-bottom: 1px solid #e5e7eb;
 	}
 
 	.team-col {
-		text-align: left;
 		font-weight: 600;
-		background: #f9fafb;
+		font-size: 0.8125rem;
+		color: #111827;
+		background: #fff;
 		position: sticky;
 		left: 0;
+		z-index: 1;
+		/* Subtle shadow on the right edge separates the sticky column from the
+		   horizontally scrolling fixtures, mirroring Streamlit's table chrome. */
+		box-shadow: inset -1px 0 0 #e5e7eb;
+	}
+
+	thead .team-col {
+		background: #f9fafb;
 	}
 </style>

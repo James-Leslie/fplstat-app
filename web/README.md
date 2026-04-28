@@ -4,13 +4,38 @@ SvelteKit frontend for fplstat. Coexists with the Streamlit app at `app/` during
 
 ## Prerequisites
 
-Node 22 and pnpm 10 — both managed by `mise` from the repo-root `mise.toml`. From the repo root:
+Node 22 and pnpm 10 — both managed by `mise` from the repo-root `mise.toml`.
+
+### Install mise (one-time, per machine)
+
+| Platform              | Command                                              |
+| --------------------- | ---------------------------------------------------- |
+| macOS                 | `brew install mise`                                  |
+| Windows               | `scoop install mise` (install Scoop first if needed) |
+| Linux / cloud sandbox | `curl https://mise.run \| sh`                        |
+
+Then activate it in your shell so `cd`-ing into the repo auto-loads the pinned tools:
+
+```bash
+# zsh (macOS default)
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc && exec zsh
+
+# bash
+echo 'eval "$(mise activate bash)"' >> ~/.bashrc && exec bash
+
+# PowerShell (Windows)
+echo 'mise activate pwsh | Out-String | Invoke-Expression' >> $PROFILE
+```
+
+### Install the pinned tools
+
+From the repo root:
 
 ```bash
 mise install
 ```
 
-(One-time per machine; installs the Python, Node, and pnpm versions pinned in `mise.toml`. See the root `README.md` for how to install `mise` itself.)
+Installs the Python, Node, and pnpm versions declared in `mise.toml`. Re-run after `mise.toml` changes.
 
 ## Setup
 
@@ -24,14 +49,14 @@ The Supabase URL and **publishable** key (not service-role) live in `web/.env` b
 
 ## Common commands
 
-| Task                     | Command         |
-| ------------------------ | --------------- |
-| Dev server (with HMR)    | `pnpm dev`      |
-| Production build         | `pnpm build`    |
-| Preview production build | `pnpm preview`  |
-| Type-check (svelte-check)| `pnpm check`    |
-| Lint (Prettier + ESLint) | `pnpm lint`     |
-| Auto-format              | `pnpm format`   |
+| Task                      | Command        |
+| ------------------------- | -------------- |
+| Dev server (with HMR)     | `pnpm dev`     |
+| Production build          | `pnpm build`   |
+| Preview production build  | `pnpm preview` |
+| Type-check (svelte-check) | `pnpm check`   |
+| Lint (Prettier + ESLint)  | `pnpm lint`    |
+| Auto-format               | `pnpm format`  |
 
 The repo's `prek` hooks invoke `lint` and `check` automatically on commit when files under `web/` are staged.
 

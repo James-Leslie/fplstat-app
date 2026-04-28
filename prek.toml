@@ -26,6 +26,9 @@ rev = "1.0.0"
 
 [[repos.hooks]]
 id = "mdformat"
+# Markdown inside web/ is owned by Prettier (configured in web/.prettierrc) so
+# the two formatters don't fight over table column widths and list markers.
+exclude = "^web/"
 additional_dependencies = [
   "mdformat-pyproject",
   "mdformat-config",
