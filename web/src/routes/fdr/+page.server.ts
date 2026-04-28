@@ -1,4 +1,4 @@
-import { supabase } from '$lib/supabase';
+import { getSupabase } from '$lib/supabase';
 import { fetchFixtures, fetchGameweekInfo, fetchTeamIdMap } from '$lib/data';
 import type { PageServerLoad } from './$types';
 
@@ -9,6 +9,7 @@ export const load: PageServerLoad = async ({ setHeaders }) => {
 		'cache-control': 'public, max-age=300'
 	});
 
+	const supabase = getSupabase();
 	const [fixtures, teamMap, gwInfo] = await Promise.all([
 		fetchFixtures(supabase),
 		fetchTeamIdMap(supabase),
