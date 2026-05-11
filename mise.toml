@@ -1,7 +1,6 @@
 [tools]
 python = "3.13"
-node = "22"
-pnpm = "10"
+node = "26"
 
 [settings.python]
 # Let mise create/source the uv-managed .venv automatically when entering the
