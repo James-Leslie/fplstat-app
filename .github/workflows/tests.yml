@@ -2,8 +2,12 @@ name: Tests
 
 on:
   pull_request:
+    paths-ignore:
+      - "web/**"
   push:
     branches: [main]
+    paths-ignore:
+      - "web/**"
 
 jobs:
   pytest:
